@@ -131,6 +131,12 @@ const advancedMovement = new AdvancedMovementController(player, playerController
       : new THREE.Vector3(horizontal.x * 7.2, 6.1, horizontal.z * 7.2);
     ballPhysics.launch(origin, velocity);
     ballPossession.beginShotFlight();
+    const shooter = playerActors.find((actor) => actor.mesh === player);
+    if (shooter) {
+      for (const defender of awayActors) {
+        if (defensiveSolver.evaluateShotBlockAttempt(defender, shooter, 80)) break;
+      }
+    }
   }
 });
 
@@ -312,7 +318,10 @@ const shotMeter = new ShotMeterEngine(root, {
   perfectWindowEnd: 0.52,
   maximumHoldDuration: 1,
   onRelease: (excellent) => {
-    shotAccuracyOffset = excellent ? 0 : THREE.MathUtils.randFloat(-0.5, 0.5);
+    const shooter = ballPossession.getCurrentHandler();
+    const contest = shooter ? defensiveSolver.calculateShotContestFactor(shooter, awayActors) : 0;
+    shotAccuracyOffset = (excellent ? 0 : THREE.MathUtils.randFloat(-0.5, 0.5)) +
+      THREE.MathUtils.randFloat(-0.25, 0.25) * (contest / 100);
     advancedMovement.requestShot(mobileInput.isSprinting || keys.has("ShiftLeft") || keys.has("ShiftRight"));
   }
 });
@@ -337,7 +346,18 @@ const mobileInput = new MobileTouchInputManager(root, {
       if (fromActor && receiverActor) ballPossession.initiatePassTransfer(fromActor, receiverActor, 0.48);
     }
   },
-  onCrossover: () => { advancedMovement.triggerCrossover(); }
+  onCrossover: () => { advancedMovement.triggerCrossover(); },
+  onSteal: () => {
+    const handler = ballPossession.getCurrentHandler();
+    if (!handler) return;
+    let nearest: PlayerActor | null = null;
+    let nearestDistance = Number.POSITIVE_INFINITY;
+    for (const defender of awayActors) {
+      const distance = defender.mesh.position.distanceTo(handler.mesh.position);
+      if (distance < nearestDistance) { nearest = defender; nearestDistance = distance; }
+    }
+    if (nearest) defensiveSolver.evaluateStealAttempt(nearest, handler, 75);
+  }
 });
 
 window.addEventListener("keydown", (event) => {
@@ -384,6 +404,7 @@ function animate(): void {
   player.position.z = THREE.MathUtils.clamp(player.position.z, -10.8, 10.8);
 
   fixedStep.update(dt, (step) => ballPossession.update(step));
+  if (ballPossession.ballState === "LooseOnCourt") ballPossession.tryRecoverLooseBall(allActors);
   ball.position.copy(ballPhysics.position);
 
   const cameraFocus = ball.position.clone();
