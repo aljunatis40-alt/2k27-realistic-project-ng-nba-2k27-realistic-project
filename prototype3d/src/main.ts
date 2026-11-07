@@ -166,7 +166,7 @@ root.appendChild(matchStatus);
 let currentMatchPeriod = 1;
 const matchStartButton = makeControl("START MATCH");
 matchStartButton.style.cssText += ";position:fixed;bottom:18px;left:50%;transform:translateX(-50%);z-index:7;padding:11px 18px;border:1px solid #ffffff88;border-radius:10px;background:#26734d";
-const matchLoop = new MatchLoopManager([player, ...offBallTeammates], ball, {
+const matchLoop = new MatchLoopManager([], ball, {
   onClockChange: (game, shot, period) => {
     currentMatchPeriod = period;
     const fmt = (value: number): string => {
