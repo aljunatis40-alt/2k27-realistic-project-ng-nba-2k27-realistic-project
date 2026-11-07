@@ -4,6 +4,7 @@ import { FixedStepRunner } from "./core/FixedStepRunner.ts";
 import { PlayerController } from "./controller/PlayerController.ts";
 import { CameraDirector, type CameraMode } from "./camera/CameraDirector.ts";
 import { PlayerFatigueEngine } from "./simulation/PlayerFatigueEngine.ts";
+import { AdvancedMovementController } from "./controller/AdvancedMovementController.ts";
 
 const root = document.querySelector<HTMLDivElement>("#app");
 if (!root) throw new Error("Missing #app root");
@@ -57,10 +58,19 @@ scene.add(player);
 const fatigueEngine = new PlayerFatigueEngine([skin], { maxStamina: 100, sprintBurnRate: 3.5, recoveryRate: 2.0 });
 
 const playerController = new PlayerController(player, {
-  moveSpeed: 3.8,
-  sprintMultiplier: 1.45,
+  moveSpeed: 5.2,
+  sprintMultiplier: 1.5,
   turnSpeed: 10
 });
+
+const hoopPosition = new THREE.Vector3(0, 3.05, -10.5);
+const rim = new THREE.Mesh(new THREE.TorusGeometry(0.46, 0.045, 10, 32), new THREE.MeshStandardMaterial({ color: "#e36b32", metalness: 0.55, roughness: 0.38 }));
+rim.rotation.x = Math.PI / 2;
+rim.position.copy(hoopPosition);
+scene.add(rim);
+const backboard = new THREE.Mesh(new THREE.BoxGeometry(1.8, 1.05, 0.08), new THREE.MeshStandardMaterial({ color: "#dce8ef", transparent: true, opacity: 0.72 }));
+backboard.position.set(0, 3.85, -11.05);
+scene.add(backboard);
 
 const ball = new THREE.Mesh(
   new THREE.SphereGeometry(0.12, 24, 16),
@@ -69,6 +79,21 @@ const ball = new THREE.Mesh(
 scene.add(ball);
 const ballPhysics = new BallPhysics();
 ballPhysics.launch(new THREE.Vector3(0, 2.2, 0), new THREE.Vector3(1.2, 2.8, 0.2));
+
+const advancedMovement = new AdvancedMovementController(player, playerController, {
+  hoopPosition,
+  baseJogSpeed: 5.2,
+  burstSprintSpeed: 7.8,
+  crossoverDampeningFactor: 0.85,
+  onBallRelease: (kind, origin) => {
+    const target = hoopPosition.clone().sub(origin);
+    const horizontal = new THREE.Vector3(target.x, 0, target.z).normalize();
+    const velocity = kind === "dunk"
+      ? new THREE.Vector3(horizontal.x * 3.2, 3.8, horizontal.z * 3.2)
+      : new THREE.Vector3(horizontal.x * 7.2, 6.1, horizontal.z * 7.2);
+    ballPhysics.launch(origin, velocity);
+  }
+});
 
 const fixedStep = new FixedStepRunner(120);
 const clock = new THREE.Clock();
@@ -166,8 +191,22 @@ sprintButton.addEventListener("pointercancel", stopSprint);
 sprintButton.addEventListener("lostpointercapture", stopSprint);
 root.appendChild(sprintButton);
 
+const actionMenu = document.createElement("div");
+actionMenu.style.cssText = "position:fixed;right:18px;bottom:132px;display:flex;gap:8px;z-index:6";
+const crossoverButton = makeControl("CROSSOVER");
+crossoverButton.style.cssText += ";min-width:88px;height:42px;padding:0 9px;border:1px solid #ffffff99;border-radius:10px;background:#234c83dd";
+crossoverButton.addEventListener("pointerdown", (event) => { event.preventDefault(); advancedMovement.triggerCrossover(); });
+const shootButton = makeControl("SHOOT");
+shootButton.style.cssText += ";min-width:72px;height:42px;padding:0 9px;border:1px solid #ffffff99;border-radius:10px;background:#b33a32dd";
+shootButton.addEventListener("pointerdown", (event) => { event.preventDefault(); advancedMovement.requestShot(sprintHeld || keys.has("ShiftLeft") || keys.has("ShiftRight")); });
+actionMenu.append(crossoverButton, shootButton);
+root.appendChild(actionMenu);
+
+
 window.addEventListener("keydown", (event) => {
   keys.add(event.code);
+  if (event.code === "KeyE") advancedMovement.triggerCrossover();
+  if (event.code === "Space") advancedMovement.requestShot(sprintHeld || keys.has("ShiftLeft") || keys.has("ShiftRight"));
   if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "Space"].includes(event.code)) event.preventDefault();
 });
 window.addEventListener("keyup", (event) => keys.delete(event.code));
@@ -181,7 +220,7 @@ function readInput(): void {
   const z = useKeyboard ? keyboardZ : joystickZ;
   const sprintRequested = sprintHeld || keys.has("ShiftLeft") || keys.has("ShiftRight");
   const sprint = sprintRequested && fatigueEngine.canSprint;
-  playerController.setInput(x, z, sprint);
+  advancedMovement.setMovementInput(x, z, sprint);
 }
 
 function resize(): void {
@@ -195,7 +234,7 @@ function animate(): void {
   const dt = Math.min(clock.getDelta(), 0.05);
   readInput();
   fatigueEngine.update(dt, playerController.input.sprint);
-  playerController.update(dt);
+  advancedMovement.update(dt);
   player.position.x = THREE.MathUtils.clamp(player.position.x, -6.8, 6.8);
   player.position.z = THREE.MathUtils.clamp(player.position.z, -10.8, 10.8);
 
