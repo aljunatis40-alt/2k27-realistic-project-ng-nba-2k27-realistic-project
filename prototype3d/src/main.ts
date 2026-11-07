@@ -274,7 +274,10 @@ window.addEventListener("keydown", (event) => {
   if (event.code === "Space" && !event.repeat) shotMeter.begin();
   if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "Space"].includes(event.code)) event.preventDefault();
 });
-window.addEventListener("keyup", (event) => {\n  keys.delete(event.code);\n  if (event.code === "Space") shotMeter.release();\n});
+window.addEventListener("keyup", (event) => {
+  keys.delete(event.code);
+  if (event.code === "Space") shotMeter.release();
+});
 window.addEventListener("blur", () => { keys.clear(); shotMeter.cancel(); });
 
 function readInput(): void {
@@ -299,6 +302,7 @@ window.addEventListener("resize", resize);
 function animate(): void {
   const dt = Math.min(clock.getDelta(), 0.05);
   readInput();
+  shotMeter.update(dt);
   fatigueEngine.update(dt, playerController.input.sprint);
   advancedMovement.update(dt);
   offensiveAI.update(dt);
