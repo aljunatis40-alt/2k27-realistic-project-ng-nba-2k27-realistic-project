@@ -2,6 +2,7 @@ import * as THREE from "three";
 import { BallPhysics } from "./simulation/BallPhysics.ts";
 import { FixedStepRunner } from "./core/FixedStepRunner.ts";
 import { PlayerController } from "./controller/PlayerController.ts";
+import { CameraDirector, type CameraMode } from "./camera/CameraDirector.ts";
 
 const root = document.querySelector<HTMLDivElement>("#app");
 if (!root) throw new Error("Missing #app root");
@@ -12,6 +13,8 @@ scene.background = new THREE.Color("#101a2a");
 const camera = new THREE.PerspectiveCamera(48, window.innerWidth / window.innerHeight, 0.1, 100);
 camera.position.set(0, 6, 10);
 camera.lookAt(0, 1, 0);
+const cameraDirector = new CameraDirector(camera);
+cameraDirector.setMode("2k");
 
 const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
@@ -75,6 +78,29 @@ const title = document.createElement("div");
 title.textContent = "NBA 2K27 · PLAYER MOVEMENT TEST";
 title.style.cssText = "position:fixed;top:env(safe-area-inset-top,12px);left:50%;transform:translateX(-50%);padding:9px 13px;border:1px solid #ffffff44;border-radius:12px;background:#101a2add;color:white;font:800 12px Arial;white-space:nowrap;pointer-events:none";
 root.appendChild(title);
+
+// On-screen camera selector for the four requested viewing modes.
+const cameraMenu = document.createElement("div");
+cameraMenu.style.cssText = "position:fixed;top:48px;right:10px;display:flex;flex-wrap:wrap;justify-content:flex-end;gap:5px;max-width:230px;z-index:5";
+const cameraModes: Array<{ label: string; mode: CameraMode }> = [
+  { label: "2K", mode: "2k" },
+  { label: "BROADCAST", mode: "broadcast" },
+  { label: "NOSEBLEED", mode: "nosebleed" },
+  { label: "RIM CAM", mode: "rim" }
+];
+for (const item of cameraModes) {
+  const button = makeControl(item.label);
+  button.style.cssText += ";min-height:34px;padding:0 9px;border:1px solid #ffffff88;border-radius:8px;background:#101a2add;font:700 10px Arial";
+  button.addEventListener("click", () => {
+    cameraDirector.setMode(item.mode);
+    for (const child of Array.from(cameraMenu.children) as HTMLDivElement[]) {
+      child.style.background = child === button ? "#b33a32" : "#101a2add";
+    }
+  });
+  if (item.mode === "2k") button.style.background = "#b33a32";
+  cameraMenu.appendChild(button);
+}
+root.appendChild(cameraMenu);
 
 function makeControl(label: string): HTMLDivElement {
   const el = document.createElement("div");
@@ -171,13 +197,12 @@ function animate(): void {
   fixedStep.update(dt, (step) => ballPhysics.step(step));
   ball.position.copy(ballPhysics.position);
 
-  const cameraTarget = new THREE.Vector3(
-    player.position.x,
-    player.position.y + 2.1,
-    player.position.z + 6.5
-  );
-  camera.position.lerp(cameraTarget, 1 - Math.exp(-3.5 * dt));
-  camera.lookAt(player.position.x, 0.9, player.position.z - 0.2);
+  const cameraFocus = ball.position.clone();
+  if (cameraDirector.mode === "2k") {
+    const handlerFocus = player.position.clone().add(new THREE.Vector3(0, 1, 0));
+    cameraFocus.lerp(handlerFocus, 0.4);
+  }
+  cameraDirector.update(dt, cameraFocus);
   renderer.render(scene, camera);
   requestAnimationFrame(animate);
 }
