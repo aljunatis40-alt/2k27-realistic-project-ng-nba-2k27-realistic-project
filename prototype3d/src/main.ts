@@ -19,6 +19,7 @@ import { PlayerHUDRenderer } from "./ui/PlayerHUDRenderer.ts";
 
 const root = document.querySelector<HTMLDivElement>("#app");
 if (!root) throw new Error("Missing #app root");
+root.style.cssText = "position:fixed;inset:0;width:100%;height:100%;overflow:hidden;background:#101a2a;";
 
 const scene = new THREE.Scene();
 scene.background = new THREE.Color("#101a2a");
@@ -33,6 +34,16 @@ const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "hi
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.domElement.style.touchAction = "none";
+renderer.domElement.style.cssText += ";display:block;width:100%;height:100%;outline:none;";
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.setClearColor(0x101a2a, 1);
+renderer.domElement.addEventListener("webglcontextlost", (event) => {
+  event.preventDefault();
+  showRenderDiagnostic("WebGL context lost. Please reload the game.");
+});
+renderer.domElement.addEventListener("webglcontextrestored", () => {
+  showRenderDiagnostic("WebGL restored. Rendering resumed.");
+});
 root.appendChild(renderer.domElement);
 
 scene.add(new THREE.HemisphereLight(0xffffff, 0x26344a, 2.0));
@@ -393,31 +404,62 @@ function resize(): void {
 }
 window.addEventListener("resize", resize);
 
+const renderDiagnostic = document.createElement("div");
+renderDiagnostic.style.cssText = "position:fixed;left:8px;right:8px;bottom:8px;z-index:30;padding:7px 9px;border-radius:7px;background:#8b1e1ecc;color:#fff;font:12px/1.35 monospace;display:none;pointer-events:none;white-space:pre-wrap";
+root.appendChild(renderDiagnostic);
+let lastDiagnosticMessage = "";
+function showRenderDiagnostic(message: string): void {
+  if (message === lastDiagnosticMessage) return;
+  lastDiagnosticMessage = message;
+  renderDiagnostic.textContent = "RENDER DIAGNOSTIC: " + message;
+  renderDiagnostic.style.display = "block";
+  console.error("[RenderDiagnostic]", message);
+}
+
+let animationFrameId = 0;
 function animate(): void {
+  // Schedule the next frame first: one bad gameplay update must not kill the loop.
+  animationFrameId = requestAnimationFrame(animate);
   const dt = Math.min(clock.getDelta(), 0.05);
-  readInput();
-  shotMeter.update(dt);
-  matchLoop.update(dt);
-  fatigueEngine.update(dt, playerController.input.sprint);
-  sweatEngine.update(dt);
-  advancedMovement.update(dt);
-  offensiveAI.update(dt);
-  player.position.x = THREE.MathUtils.clamp(player.position.x, -6.8, 6.8);
-  player.position.z = THREE.MathUtils.clamp(player.position.z, -10.8, 10.8);
 
-  shotTrajectory.updateFlightTrajectory(dt, () => ballPossession.releaseAsLooseBall());
-  fixedStep.update(dt, (step) => ballPossession.update(step));
-  if (ballPossession.ballState === "LooseOnCourt") ballPossession.tryRecoverLooseBall(allActors);
-  ball.position.copy(ballPhysics.position);
-  playerHUD.updateHUDOverlays(allActors);
+  try {
+    readInput();
+    shotMeter.update(dt);
+    matchLoop.update(dt);
+    fatigueEngine.update(dt, playerController.input.sprint);
+    sweatEngine.update(dt);
+    advancedMovement.update(dt);
+    offensiveAI.update(dt);
+    player.position.x = THREE.MathUtils.clamp(player.position.x, -6.8, 6.8);
+    player.position.z = THREE.MathUtils.clamp(player.position.z, -10.8, 10.8);
 
-  const cameraFocus = ball.position.clone();
-  if (cameraDirector.mode === "2k") {
-    const handlerFocus = player.position.clone().add(new THREE.Vector3(0, 1, 0));
-    cameraFocus.lerp(handlerFocus, 0.4);
+    shotTrajectory.updateFlightTrajectory(dt, () => ballPossession.releaseAsLooseBall());
+    fixedStep.update(dt, (step) => ballPossession.update(step));
+    if (ballPossession.ballState === "LooseOnCourt") ballPossession.tryRecoverLooseBall(allActors);
+    ball.position.copy(ballPhysics.position);
+    playerHUD.updateHUDOverlays(allActors);
+
+    const cameraFocus = ball.position.clone();
+    if (cameraDirector.mode === "2k") {
+      const handlerFocus = player.position.clone().add(new THREE.Vector3(0, 1, 0));
+      cameraFocus.lerp(handlerFocus, 0.4);
+    }
+    cameraDirector.update(dt, cameraFocus);
+  } catch (error) {
+    const detail = error instanceof Error ? error.stack || error.message : String(error);
+    showRenderDiagnostic(detail);
   }
-  cameraDirector.update(dt, cameraFocus);
-  if (graphicsQuality.shouldRender(performance.now())) renderer.render(scene, camera);
-  requestAnimationFrame(animate);
+
+  // Keep rendering even when a non-rendering gameplay subsystem throws.
+  try {
+    if (renderer.getContext().isContextLost()) {
+      showRenderDiagnostic("WebGL context is lost; waiting for browser recovery.");
+      return;
+    }
+    if (graphicsQuality.shouldRender(performance.now())) renderer.render(scene, camera);
+  } catch (error) {
+    const detail = error instanceof Error ? error.stack || error.message : String(error);
+    showRenderDiagnostic("WebGL render failed: " + detail);
+  }
 }
 animate();
