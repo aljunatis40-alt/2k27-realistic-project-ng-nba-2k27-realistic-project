@@ -10,6 +10,7 @@ import { MobileTouchInputManager } from "./ui/MobileTouchInputManager.ts";
 import { GraphicsQualityManager, type GraphicsPreset } from "./performance/GraphicsQualityManager.ts";
 import { AudioMixerManager } from "./audio/AudioMixerManager.ts";
 import { ShotMeterEngine } from "./ui/ShotMeterEngine.ts";
+import { SweatParticleEngine } from "./graphics/SweatParticleEngine.ts";
 
 const root = document.querySelector<HTMLDivElement>("#app");
 if (!root) throw new Error("Missing #app root");
@@ -82,6 +83,11 @@ for (let i = 0; i < 4; i++) {
 }
 
 const fatigueEngine = new PlayerFatigueEngine([skin], { maxStamina: 100, sprintBurnRate: 3.5, recoveryRate: 2.0 });
+const sweatEngine = new SweatParticleEngine(player, fatigueEngine, {
+  capacity: 96,
+  maximumFatigueEmissionRate: 45,
+  sweatActivationThresholdPercent: 0.35
+});
 
 const playerController = new PlayerController(player, {
   moveSpeed: 5.2,
@@ -303,7 +309,7 @@ function animate(): void {
   const dt = Math.min(clock.getDelta(), 0.05);
   readInput();
   shotMeter.update(dt);
-  fatigueEngine.update(dt, playerController.input.sprint);
+  fatigueEngine.update(dt, playerController.input.sprint);\n  sweatEngine.update(dt);
   advancedMovement.update(dt);
   offensiveAI.update(dt);
   player.position.x = THREE.MathUtils.clamp(player.position.x, -6.8, 6.8);
