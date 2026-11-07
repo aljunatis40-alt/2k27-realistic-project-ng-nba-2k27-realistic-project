@@ -30,10 +30,8 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: npm
-          cache-dependency-path: prototype3d/package-lock.json
       - name: Install dependencies
-        run: npm ci
+        run: npm install
       - name: Type-check and build
         run: npm run build
 
@@ -52,7 +50,7 @@ jobs:
         with:
           node-version: 22
       - name: Install dependencies
-        run: npm ci
+        run: npm install
       - name: Build production bundle
         run: npm run build
       - name: Validate generated assets
@@ -88,7 +86,7 @@ jobs:
           node-version: 22
       - name: Install dependencies and build
         working-directory: prototype3d
-        run: npm ci && npm run build
+        run: npm install && npm run build
       - name: Upload 3D prototype build
         uses: actions/upload-artifact@v4
         with:
