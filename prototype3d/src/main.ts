@@ -3,6 +3,7 @@ import { BallPhysics } from "./simulation/BallPhysics.ts";
 import { FixedStepRunner } from "./core/FixedStepRunner.ts";
 import { PlayerController } from "./controller/PlayerController.ts";
 import { CameraDirector, type CameraMode } from "./camera/CameraDirector.ts";
+import { PlayerFatigueEngine } from "./simulation/PlayerFatigueEngine.ts";
 
 const root = document.querySelector<HTMLDivElement>("#app");
 if (!root) throw new Error("Missing #app root");
@@ -37,7 +38,7 @@ scene.add(floor);
 // Simple placeholder player mesh; licensed player models and animations come later.
 const player = new THREE.Group();
 const jersey = new THREE.MeshStandardMaterial({ color: "#3d79c5", roughness: 0.68 });
-const skin = new THREE.MeshStandardMaterial({ color: "#a96f4c", roughness: 0.82 });
+const skin = new THREE.MeshPhysicalMaterial({ color: "#a96f4c", roughness: 0.45, clearcoat: 0, clearcoatRoughness: 0.35 });
 const torso = new THREE.Mesh(new THREE.CapsuleGeometry(0.28, 0.62, 5, 10), jersey);
 torso.position.y = 0.88;
 player.add(torso);
@@ -52,6 +53,8 @@ rightLeg.position.x = 0.14;
 player.add(rightLeg);
 player.position.set(0, 0, 2.5);
 scene.add(player);
+
+const fatigueEngine = new PlayerFatigueEngine([skin], { maxStamina: 100, sprintBurnRate: 3.5, recoveryRate: 2.0 });
 
 const playerController = new PlayerController(player, {
   moveSpeed: 3.8,
@@ -176,7 +179,8 @@ function readInput(): void {
   const useKeyboard = keyboardX !== 0 || keyboardZ !== 0;
   const x = useKeyboard ? keyboardX : joystickX;
   const z = useKeyboard ? keyboardZ : joystickZ;
-  const sprint = sprintHeld || keys.has("ShiftLeft") || keys.has("ShiftRight");
+  const sprintRequested = sprintHeld || keys.has("ShiftLeft") || keys.has("ShiftRight");
+  const sprint = sprintRequested && fatigueEngine.canSprint;
   playerController.setInput(x, z, sprint);
 }
 
@@ -190,6 +194,7 @@ window.addEventListener("resize", resize);
 function animate(): void {
   const dt = Math.min(clock.getDelta(), 0.05);
   readInput();
+  fatigueEngine.update(dt, playerController.input.sprint);
   playerController.update(dt);
   player.position.x = THREE.MathUtils.clamp(player.position.x, -6.8, 6.8);
   player.position.z = THREE.MathUtils.clamp(player.position.z, -10.8, 10.8);
