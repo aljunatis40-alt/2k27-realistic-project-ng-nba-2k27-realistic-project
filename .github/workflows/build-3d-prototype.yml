@@ -1,20 +1,24 @@
-name: Build NBA 2K27 3D Prototype
+name: NBA 2K27 Realistic Project CI Pipeline
 
 on:
   push:
-    branches: [main]
+    branches: [main, production_stable]
     paths:
       - "prototype3d/**"
       - ".github/workflows/build-3d-prototype.yml"
   pull_request:
-    branches: [main]
+    branches: [main, production_stable]
     paths:
       - "prototype3d/**"
       - ".github/workflows/build-3d-prototype.yml"
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
-  build:
+  code_compilation:
+    name: Code compilation and TypeScript checks
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -26,10 +30,65 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
+          cache: npm
+          cache-dependency-path: prototype3d/package-lock.json
       - name: Install dependencies
-        run: npm install
+        run: npm ci
       - name: Type-check and build
         run: npm run build
+
+  asset_bundle_validation:
+    name: Asset bundle validation
+    runs-on: ubuntu-latest
+    needs: code_compilation
+    defaults:
+      run:
+        working-directory: prototype3d
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install dependencies
+        run: npm ci
+      - name: Build production bundle
+        run: npm run build
+      - name: Validate generated assets
+        run: npm run validate:assets
+
+  memory_leak_check:
+    name: Static memory and lifecycle audit
+    runs-on: ubuntu-latest
+    needs: code_compilation
+    defaults:
+      run:
+        working-directory: prototype3d
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Audit timer cleanup and lifecycle hazards
+        run: npm run audit:memory
+
+  upload_build:
+    name: Publish prototype build artifact
+    runs-on: ubuntu-latest
+    needs: [code_compilation, asset_bundle_validation, memory_leak_check]
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install dependencies and build
+        working-directory: prototype3d
+        run: npm ci && npm run build
       - name: Upload 3D prototype build
         uses: actions/upload-artifact@v4
         with:
