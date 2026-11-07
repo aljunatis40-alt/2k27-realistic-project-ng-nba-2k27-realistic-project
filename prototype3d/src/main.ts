@@ -70,7 +70,7 @@ scene.add(ball);
 const ballPhysics = new BallPhysics();
 ballPhysics.launch(new THREE.Vector3(0, 2.2, 0), new THREE.Vector3(1.2, 2.8, 0.2));
 
-const fixedStep = new FixedStepRunner(60);
+const fixedStep = new FixedStepRunner(120);
 const clock = new THREE.Clock();
 const keys = new Set<string>();
 let sprintHeld = false;
