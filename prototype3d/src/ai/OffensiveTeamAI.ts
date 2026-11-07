@@ -1,6 +1,6 @@
 import * as THREE from "three";
 
-export type OffensivePlayCall = "FiveOutSpacing" | "PickAndRoll" | "BaselineCut";
+export type OffensivePlayCall = "FiveOutSpacing" | "PickAndRoll" | "PickAndRollSlip" | "BaselineCut";
 
 export interface OffensiveTeamAIOptions {
   ballCarrier: THREE.Object3D;
@@ -63,7 +63,7 @@ export class OffensiveTeamAI {
     const dt = Math.min(Math.max(deltaSeconds, 0), 0.05);
     if (this.agents.length < 4) return;
 
-    if (this.currentPlay === "PickAndRoll") {
+    if ((this.currentPlay === "PickAndRoll" || this.currentPlay === "PickAndRollSlip")) {
       this.updatePickAndRollState();
     }
     this.updateDestinations();
@@ -110,7 +110,7 @@ export class OffensiveTeamAI {
       if (this.currentPlay === "FiveOutSpacing") {
         const offset = this.spacingOffsets[i];
         point.set(offset.x, 0, offset.z * (basketSide < 0 ? 1 : -1));
-      } else if (this.currentPlay === "PickAndRoll") {
+      } else if ((this.currentPlay === "PickAndRoll" || this.currentPlay === "PickAndRollSlip")) {
         if (i === 0) {
           if (this.pickRollScreenReady) {
             this.rollPoint.copy(this.basketPosition);
