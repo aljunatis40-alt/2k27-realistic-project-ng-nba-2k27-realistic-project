@@ -9,6 +9,7 @@ import { OffensiveTeamAI, type OffensivePlayCall } from "./ai/OffensiveTeamAI.ts
 import { MobileTouchInputManager } from "./ui/MobileTouchInputManager.ts";
 import { GraphicsQualityManager, type GraphicsPreset } from "./performance/GraphicsQualityManager.ts";
 import { AudioMixerManager } from "./audio/AudioMixerManager.ts";
+import { ShotMeterEngine } from "./ui/ShotMeterEngine.ts";
 
 const root = document.querySelector<HTMLDivElement>("#app");
 if (!root) throw new Error("Missing #app root");
@@ -105,6 +106,8 @@ scene.add(ball);
 const ballPhysics = new BallPhysics();
 ballPhysics.launch(new THREE.Vector3(0, 2.2, 0), new THREE.Vector3(1.2, 2.8, 0.2));
 
+let shotAccuracyOffset = 0;
+
 const advancedMovement = new AdvancedMovementController(player, playerController, {
   hoopPosition,
   baseJogSpeed: 5.2,
@@ -112,6 +115,7 @@ const advancedMovement = new AdvancedMovementController(player, playerController
   crossoverDampeningFactor: 0.85,
   onBallRelease: (kind, origin) => {
     const target = hoopPosition.clone().sub(origin);
+    target.x += shotAccuracyOffset;
     const horizontal = new THREE.Vector3(target.x, 0, target.z).normalize();
     const velocity = kind === "dunk"
       ? new THREE.Vector3(horizontal.x * 3.2, 3.8, horizontal.z * 3.2)
@@ -228,11 +232,21 @@ function makeControl(label: string): HTMLDivElement {
   return el;
 }
 
+// Hold-to-shoot timing meter shared by touch and keyboard.
+const shotMeter = new ShotMeterEngine(root, {
+  perfectWindowStart: 0.48,
+  perfectWindowEnd: 0.52,
+  maximumHoldDuration: 1,
+  onRelease: (excellent) => {
+    shotAccuracyOffset = excellent ? 0 : THREE.MathUtils.randFloat(-0.5, 0.5);
+    advancedMovement.requestShot(mobileInput.isSprinting || keys.has("ShiftLeft") || keys.has("ShiftRight"));
+  }
+});
+
 // Unified mobile controls.
 const mobileInput = new MobileTouchInputManager(root, {
-  onShoot: () => {
-    advancedMovement.requestShot(mobileInput.isSprinting || keys.has("ShiftLeft") || keys.has("ShiftRight"));
-  },
+  onShoot: () => shotMeter.begin(),
+  onShootRelease: () => shotMeter.release(),
   onPass: () => {
     let receiver: THREE.Group | undefined;
     let nearestDistance = Number.POSITIVE_INFINITY;
@@ -257,11 +271,11 @@ const mobileInput = new MobileTouchInputManager(root, {
 window.addEventListener("keydown", (event) => {
   keys.add(event.code);
   if (event.code === "KeyE") advancedMovement.triggerCrossover();
-  if (event.code === "Space") advancedMovement.requestShot(keys.has("ShiftLeft") || keys.has("ShiftRight"));
+  if (event.code === "Space" && !event.repeat) shotMeter.begin();
   if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "Space"].includes(event.code)) event.preventDefault();
 });
-window.addEventListener("keyup", (event) => keys.delete(event.code));
-window.addEventListener("blur", () => { keys.clear(); });
+window.addEventListener("keyup", (event) => {\n  keys.delete(event.code);\n  if (event.code === "Space") shotMeter.release();\n});
+window.addEventListener("blur", () => { keys.clear(); shotMeter.cancel(); });
 
 function readInput(): void {
   const keyboardX = Number(keys.has("KeyD") || keys.has("ArrowRight")) - Number(keys.has("KeyA") || keys.has("ArrowLeft"));
