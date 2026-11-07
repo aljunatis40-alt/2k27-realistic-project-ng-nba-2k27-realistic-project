@@ -71,6 +71,8 @@ export class BallPossessionController {
         this.updatePass(dt);
         break;
       case BallState.InFlightShot:
+        // ShotTrajectorySolver owns the shot's deterministic ballistic path.
+        break;
       case BallState.LooseOnCourt:
         this.ball.step(dt);
         if (this.state === BallState.InFlightShot && this.ball.position.y <= 0.12 + 0.015 &&
