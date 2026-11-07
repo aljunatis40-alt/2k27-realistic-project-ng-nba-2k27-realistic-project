@@ -26,3 +26,7 @@ PWA installation and offline caching require HTTPS hosting (for example GitHub P
 - No verified Android APK build yet.
 
 Next milestones: improve possession/shot physics, add teammate passing, implement proper court boundaries and shot clock, then move to a 3D engine/cloud build pipeline.
+
+## Advanced realism roadmap
+
+The proposed broadcast cameras, instant replay, commentary/audio, living arena, player/ball details, TV scoreboard, and mobile optimization architecture are documented in [`docs/ADVANCED_REALISM_ROADMAP.md`](docs/ADVANCED_REALISM_ROADMAP.md). These are planned systems, not features already implemented in v0.1.
