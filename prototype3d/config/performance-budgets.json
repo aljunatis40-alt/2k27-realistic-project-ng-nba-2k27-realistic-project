@@ -1,0 +1,24 @@
+{
+  "pipelineName": "NBA 2K27 Realistic Project CI Pipeline",
+  "optimizationTargets": {
+    "rosterEngine": {
+      "maxHeapAllocationMB": 12,
+      "garbageCollectionObservationSeconds": 60,
+      "measurementStatus": "runtime-profiler-required"
+    },
+    "proceduralCharacterAssembler": {
+      "gpuInstancingEnabled": true,
+      "maxActivePolygonCount": 850000,
+      "measurementStatus": "runtime-counter-required"
+    },
+    "ballPhysics": {
+      "collisionRefreshRateHz": 120,
+      "physicsTimestepDelta": 0.00833,
+      "implementationStatus": "fixed-step-runner-configured"
+    }
+  },
+  "notes": [
+    "Heap and polygon targets are guardrails until runtime instrumentation is integrated.",
+    "Three.js physics uses a 1/120 second fixed simulation step."
+  ]
+}
