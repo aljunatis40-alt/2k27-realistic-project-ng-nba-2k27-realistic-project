@@ -33,9 +33,10 @@ const keyLight = new THREE.DirectionalLight(0xffffff, 2.2);
 keyLight.position.set(4, 9, 5);
 scene.add(keyLight);
 
+const courtMaterial = new THREE.MeshStandardMaterial({ color: "#b87943", roughness: 0.82 });
 const floor = new THREE.Mesh(
   new THREE.PlaneGeometry(15, 24),
-  new THREE.MeshStandardMaterial({ color: "#b87943", roughness: 0.82 })
+  courtMaterial
 );
 floor.rotation.x = -Math.PI / 2;
 scene.add(floor);
