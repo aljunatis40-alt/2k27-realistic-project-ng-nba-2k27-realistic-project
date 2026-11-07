@@ -85,7 +85,7 @@ jobs:
           node-version: 22
       - name: Validate current sample roster JSON
         run: |
-          node -e "const fs=require('fs'); const p='prototype3d/src/data/roster-sample-2026-27.json'; const data=JSON.parse(fs.readFileSync(p,'utf8')); if (!Array.isArray(data)) throw new Error('Roster root must be an array'); console.log('Roster JSON valid:', data.length, 'entries');"
+          node -e "const fs=require('fs'); const p='prototype3d/src/data/roster-sample-2026-27.json'; const data=JSON.parse(fs.readFileSync(p,'utf8')); if (!data || !Array.isArray(data.teams)) throw new Error('Roster must contain a teams array'); let count=0; for (const team of data.teams) { if (!team.team_name || !Array.isArray(team.roster)) throw new Error('Each team must have a team_name and roster array'); count += team.roster.length; } console.log('Roster JSON valid:', data.teams.length, 'teams,', count, 'players');"
 
   upload_build:
     name: Publish prototype build artifact
