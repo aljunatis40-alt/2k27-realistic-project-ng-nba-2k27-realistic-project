@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#101a2a">
+<title>NBA 2K27 Realistic Project — Mobile Prototype</title>
+<link rel="manifest" href="manifest.webmanifest">
+<style>
+:root{--bg:#101a2a;--panel:#18263b;--line:#e9d8a6;--accent:#f4a62a;--blue:#48a8ff;--red:#ff6464}
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:var(--bg);color:#fff;font-family:system-ui,Arial;touch-action:none;user-select:none}
+#game{display:block;width:100vw;height:100dvh;background:#172338}
+.hud{position:fixed;top:env(safe-area-inset-top,8px);left:50%;transform:translateX(-50%);display:flex;gap:8px;align-items:center;background:#101a2ae8;border:1px solid #ffffff35;border-radius:14px;padding:7px 12px;z-index:3;white-space:nowrap;font-weight:800;font-size:13px}
+.hud span{color:#ffc45c}.hint{position:fixed;top:56px;left:50%;transform:translateX(-50%);font-size:11px;color:#d6e0ee;background:#101a2abf;padding:5px 9px;border-radius:10px;z-index:3}
+#stick{position:fixed;left:max(18px,env(safe-area-inset-left));bottom:max(22px,env(safe-area-inset-bottom));width:132px;height:132px;border:2px solid #ffffff70;border-radius:50%;background:#101a2a70;z-index:4;touch-action:none}
+#knob{position:absolute;width:54px;height:54px;left:37px;top:37px;border-radius:50%;background:#dbeafea8;border:2px solid #fff;box-shadow:0 3px 12px #0008}
+.actions{position:fixed;right:max(14px,env(safe-area-inset-right));bottom:max(18px,env(safe-area-inset-bottom));display:grid;grid-template-columns:repeat(2,76px);gap:10px;z-index:4}
+button{width:76px;height:65px;border-radius:18px;border:2px solid #ffffff80;color:#fff;background:#1b3556eF;font-weight:900;font-size:12px;box-shadow:0 4px 10px #0006;touch-action:none}
+button:active,button.active{transform:scale(.95);background:#bd7416}
+#shoot{background:#a64e16}#drive{background:#176c91}#defend{background:#315d3c}
+#toast{position:fixed;left:50%;top:94px;transform:translateX(-50%);padding:8px 14px;background:#101a2ae8;border-radius:12px;font-weight:800;opacity:0;transition:opacity .2s;z-index:5;pointer-events:none}
+#install{position:fixed;right:12px;top:12px;z-index:6;width:auto;height:auto;padding:8px 11px;font-size:11px;border-radius:10px;background:#315d3c}
+@media (orientation:portrait){.hint{top:58px}.hud{font-size:12px}.actions{grid-template-columns:repeat(2,68px)}button{width:68px;height:58px;font-size:11px}#stick{width:118px;height:118px}#knob{left:31px;top:31px}}
+</style>
+</head>
+<body>
+<canvas id="game"></canvas>
+<div class="hud">HOME <span id="score">0</span> — <span id="clock">12:00</span> — AWAY <span>0</span></div>
+<div class="hint">MOVE • DRIVE • SHOOT • PASS • DEFEND</div>
+<div id="toast"></div>
+<button id="install" hidden>INSTALL GAME</button>
+<div id="stick"><div id="knob"></div></div>
+<div class="actions">
+<button id="pass">PASS</button><button id="shoot">SHOOT</button>
+<button id="drive">DRIVE</button><button id="defend">DEFEND</button>
+</div>
+<script>
+const canvas=document.getElementById('game'),ctx=canvas.getContext('2d');
+let W=0,H=0,dpr=1;
+function resize(){dpr=Math.min(devicePixelRatio||1,2);W=innerWidth;H=innerHeight;canvas.width=W*dpr;canvas.height=H*dpr;canvas.style.width=W+'px';canvas.style.height=H+'px';ctx.setTransform(dpr,0,0,dpr,0,0)}
+addEventListener('resize',resize);resize();
+const state={score:0,time:720,shotClock:24,drive:false,defend:false,shot:null,toastTimer:0};
+const p={x:.27,y:.53,r:17,vx:0,vy:0,face:0};
+const defender={x:.49,y:.5,r:18};
+const ball={x:p.x,y:p.y,z:0,vx:0,vy:0,vz:0,held:true};
+const stick={x:0,y:0,id:null};
+const hoop={x:.84,y:.5};
+let last=performance.now(),lastToast=0;
+function say(s){const el=document.getElementById('toast');el.textContent=s;el.style.opacity=1;clearTimeout(lastToast);lastToast=setTimeout(()=>el.style.opacity=0,1100)}
+function court(){const cw=Math.min(W*.91,H*.72*1.88),ch=cw/1.88,x=(W-cw)/2,y=(H-ch)/2;
+ctx.fillStyle='#b87943';ctx.fillRect(x,y,cw,ch);
+ctx.fillStyle='#c78c53';for(let i=0;i<12;i++){ctx.fillRect(x+i*cw/12,y, cw/24,ch)}
+ctx.strokeStyle='#f8e7c4';ctx.lineWidth=2.2;ctx.strokeRect(x,y,cw,ch);
+ctx.beginPath();ctx.moveTo(x+cw/2,y);ctx.lineTo(x+cw/2,y+ch);ctx.stroke();
+ctx.beginPath();ctx.arc(x+cw/2,y+ch/2,ch*.12,0,Math.PI*2);ctx.stroke();
+ctx.strokeRect(x+cw*.72,y+ch*.31,cw*.14,ch*.38);
+ctx.beginPath();ctx.arc(x+cw*.72,y+ch/2,ch*.19,-Math.PI/2,Math.PI/2);ctx.stroke();
+ctx.beginPath();ctx.arc(x+cw*.84,y+ch/2,ch*.07,0,Math.PI*2);ctx.stroke();
+ctx.fillStyle='#e9d8a6';ctx.fillRect(x+cw*.885,y+ch*.42,5,ch*.16);
+ctx.strokeStyle='#ff6d27';ctx.lineWidth=4;ctx.beginPath();ctx.ellipse(x+cw*.87,y+ch/2,13,7,0,0,Math.PI*2);ctx.stroke();
+return{x,y,cw,ch}}
+function player(x,y,color,label,r=17){ctx.save();ctx.fillStyle='#0005';ctx.beginPath();ctx.ellipse(x,y+r*.8,r*1.1,r*.45,0,0,Math.PI*2);ctx.fill();ctx.fillStyle=color;ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fill();ctx.fillStyle='white';ctx.font='bold 12px Arial';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(label,x,y);ctx.restore()}
+function draw(){ctx.clearRect(0,0,W,H);const c=court();const px=c.x+p.x*c.cw,py=c.y+p.y*c.ch,dx=c.x+defender.x*c.cw,dy=c.y+defender.y*c.ch;
+player(dx,dy,'#d94747','D',18);player(px,py,'#177bd0','23',18);
+if(ball.held){ball.x=p.x+Math.cos(p.face)*.035;ball.y=p.y+Math.sin(p.face)*.045;ball.z=Math.abs(Math.sin(performance.now()/105))*.025}
+const bx=c.x+ball.x*c.cw,by=c.y+ball.y*c.ch-ball.z*100;
+ctx.fillStyle='#e97825';ctx.beginPath();ctx.arc(bx,by,8,0,Math.PI*2);ctx.fill();ctx.strokeStyle='#4d2815';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(bx-7,by);ctx.lineTo(bx+7,by);ctx.moveTo(bx,by-7);ctx.lineTo(bx,by+7);ctx.stroke();
+if(state.shot){ctx.strokeStyle='#fff9';ctx.setLineDash([5,5]);ctx.beginPath();ctx.moveTo(px,py);ctx.lineTo(c.x+hoop.x*c.cw,c.y+hoop.y*c.ch);ctx.stroke();ctx.setLineDash([])}
+}
+function tick(now){let dt=Math.min((now-last)/1000,.04);last=now;
+if(stick.id!==null){const speed=state.drive?0.40:0.27;p.vx=stick.x*speed;p.vy=stick.y*speed;if(Math.hypot(stick.x,stick.y)>.1)p.face=Math.atan2(stick.y,stick.x)}
+else{p.vx*=.82;p.vy*=.82}
+p.x=Math.max(.08,Math.min(.91,p.x+p.vx*dt));p.y=Math.max(.12,Math.min(.88,p.y+p.vy*dt));
+defender.x+=(p.x+.10-defender.x)*Math.min(1,dt*.8);defender.y+=(p.y-defender.y)*Math.min(1,dt*.8);
+if(!ball.held){ball.x+=ball.vx*dt;ball.y+=ball.vy*dt;ball.vz+=-0.8*dt;ball.z+=ball.vz*dt;if(ball.z<0){ball.z=0;ball.vz=Math.abs(ball.vz)*.55}if(ball.x>hoop.x-.035&&ball.x<hoop.x+.035&&Math.abs(ball.y-hoop.y)<.055&&ball.z<.10){state.score+=2;document.getElementById('score').textContent=state.score;say('BUCKET! +2');ball.held=true;state.shot=null;p.x=.27;p.y=.53;defender.x=.49;defender.y=.5} else if(ball.x<0||ball.x>1||ball.y<0||ball.y>1){ball.held=true;state.shot=null;say('BALL RECOVERED')}}
+if(state.defend && Math.hypot(p.x-defender.x,p.y-defender.y)<.08)sayOnce('DEFENSIVE PRESSURE');
+if(state.time>0){state.time-=dt;let m=Math.floor(state.time/60),s=Math.floor(state.time%60);document.getElementById('clock').textContent=m+':'+String(s).padStart(2,'0')}
+draw();requestAnimationFrame(tick)}
+let onceAt=0;function sayOnce(t){if(Date.now()-onceAt>1800){say(t);onceAt=Date.now()}}
+function button(id,down,up){const b=document.getElementById(id);b.addEventListener('pointerdown',e=>{e.preventDefault();b.classList.add('active');down&&down()});['pointerup','pointercancel','pointerleave'].forEach(ev=>b.addEventListener(ev,e=>{b.classList.remove('active');up&&up()}))}
+button('drive',()=>state.drive=true,()=>state.drive=false);
+button('defend',()=>{state.defend=true;say('DEFENSIVE STANCE')},()=>state.defend=false);
+button('pass',()=>{if(ball.held){ball.held=false;ball.vx=.35;ball.vy=(Math.random()-.5)*.12;ball.vz=.12;say('PASS');setTimeout(()=>{if(!ball.held){ball.held=true;say('PASS RECEIVED')}},700)}});
+button('shoot',()=>{if(ball.held){ball.held=false;ball.vx=.55;ball.vy=(hoop.y-ball.y)*.9;ball.vz=.55;state.shot=true;say('SHOT RELEASED')}})
+const stickEl=document.getElementById('stick'),knob=document.getElementById('knob');
+function setStick(e){const r=stickEl.getBoundingClientRect(),cx=r.left+r.width/2,cy=r.top+r.height/2,dx=e.clientX-cx,dy=e.clientY-cy,max=43,len=Math.hypot(dx,dy)||1,k=Math.min(1,max/len);stick.x=dx/Math.max(max,len);stick.y=dy/Math.max(max,len);knob.style.transform=`translate(${dx*k}px,${dy*k}px)`}
+stickEl.addEventListener('pointerdown',e=>{e.preventDefault();stick.id=e.pointerId;stickEl.setPointerCapture(e.pointerId);setStick(e)});
+stickEl.addEventListener('pointermove',e=>{if(stick.id===e.pointerId)setStick(e)});
+function release(e){if(stick.id===e.pointerId){stick.id=null;stick.x=stick.y=0;knob.style.transform='translate(0,0)'}}
+stickEl.addEventListener('pointerup',release);stickEl.addEventListener('pointercancel',release);
+let deferredPrompt;const install=document.getElementById('install');
+window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredPrompt=e;install.hidden=false});
+install.addEventListener('click',async()=>{if(deferredPrompt){deferredPrompt.prompt();await deferredPrompt.userChoice;deferredPrompt=null;install.hidden=true}else say('Use browser menu: Add to Home screen')});
+if('serviceWorker' in navigator && location.protocol.startsWith('http'))navigator.serviceWorker.register('./sw.js').catch(()=>{});
+requestAnimationFrame(tick);
+</script>
+</body></html>
