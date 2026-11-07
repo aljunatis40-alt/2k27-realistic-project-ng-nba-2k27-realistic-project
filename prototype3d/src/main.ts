@@ -8,6 +8,7 @@ import { AdvancedMovementController } from "./controller/AdvancedMovementControl
 import { OffensiveTeamAI, type OffensivePlayCall } from "./ai/OffensiveTeamAI.ts";
 import { MobileTouchInputManager } from "./ui/MobileTouchInputManager.ts";
 import { GraphicsQualityManager, type GraphicsPreset } from "./performance/GraphicsQualityManager.ts";
+import { AudioMixerManager } from "./audio/AudioMixerManager.ts";
 
 const root = document.querySelector<HTMLDivElement>("#app");
 if (!root) throw new Error("Missing #app root");
@@ -182,6 +183,13 @@ for (const option of qualityOptions) {
   qualityMenu.appendChild(button);
 }
 root.appendChild(qualityMenu);
+
+// Persistent master, commentary, arena SFX and crowd audio controls.
+const audioMixer = new AudioMixerManager();
+audioMixer.createSettingsPanel(root);
+const resumeAudio = () => { void audioMixer.resume(); };
+root.addEventListener("pointerdown", resumeAudio, { once: true });
+root.addEventListener("keydown", resumeAudio, { once: true });
 
 const playbookMenu = document.createElement("div");
 playbookMenu.style.cssText = "position:fixed;left:10px;top:48px;display:flex;flex-direction:column;gap:5px;z-index:5";
