@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import { BallPhysics } from "./simulation/BallPhysics.ts";
+import { ShotTrajectorySolver } from "./simulation/ShotTrajectorySolver.ts";
 import { FixedStepRunner } from "./core/FixedStepRunner.ts";
 import { PlayerController } from "./controller/PlayerController.ts";
 import { CameraDirector, type CameraMode } from "./camera/CameraDirector.ts";
@@ -114,6 +115,7 @@ const ball = new THREE.Mesh(
 scene.add(ball);
 const ballPhysics = new BallPhysics();
 ballPhysics.position.set(0, 1.25, 2.1);
+const shotTrajectory = new ShotTrajectorySolver(ball, ballPhysics);
 
 let shotAccuracyOffset = 0;
 
@@ -123,13 +125,9 @@ const advancedMovement = new AdvancedMovementController(player, playerController
   burstSprintSpeed: 7.8,
   crossoverDampeningFactor: 0.85,
   onBallRelease: (kind, origin) => {
-    const target = hoopPosition.clone().sub(origin);
-    target.x += shotAccuracyOffset;
-    const horizontal = new THREE.Vector3(target.x, 0, target.z).normalize();
-    const velocity = kind === "dunk"
-      ? new THREE.Vector3(horizontal.x * 3.2, 3.8, horizontal.z * 3.2)
-      : new THREE.Vector3(horizontal.x * 7.2, 6.1, horizontal.z * 7.2);
-    ballPhysics.launch(origin, velocity);
+    const release = origin.clone();
+    if (kind === "dunk") release.y = Math.max(2.2, release.y);
+    shotTrajectory.launchBallFlight(release, hoopPosition, shotAccuracyOffset);
     ballPossession.beginShotFlight();
     const shooter = playerActors.find((actor) => actor.mesh === player);
     if (shooter) {
@@ -404,6 +402,7 @@ function animate(): void {
   player.position.x = THREE.MathUtils.clamp(player.position.x, -6.8, 6.8);
   player.position.z = THREE.MathUtils.clamp(player.position.z, -10.8, 10.8);
 
+  shotTrajectory.updateFlightTrajectory(dt, () => ballPossession.releaseAsLooseBall());
   fixedStep.update(dt, (step) => ballPossession.update(step));
   if (ballPossession.ballState === "LooseOnCourt") ballPossession.tryRecoverLooseBall(allActors);
   ball.position.copy(ballPhysics.position);
