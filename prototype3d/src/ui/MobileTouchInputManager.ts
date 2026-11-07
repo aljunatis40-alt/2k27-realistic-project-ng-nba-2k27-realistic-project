@@ -11,6 +11,7 @@ export class MobileTouchInputManager {
   private readonly knob: HTMLDivElement;
   private readonly sprintButton: HTMLDivElement;
   private readonly joystickRadius = 43;
+  private readonly joystickDeadZone = 0.08;
   private pointerId: number | null = null;
   private x = 0;
   private y = 0;
@@ -76,6 +77,13 @@ export class MobileTouchInputManager {
 
   private readonly onPointerDown = (event: PointerEvent): void => {
     if (this.pointerId !== null) return;
+    // Floating joystick: anchor its center where the left thumb first lands.
+    const diameter = 124;
+    const left = Math.max(8, Math.min(window.innerWidth / 2 - diameter, event.clientX - diameter / 2));
+    const top = Math.max(8, Math.min(window.innerHeight - diameter - 8, event.clientY - diameter / 2));
+    this.base.style.left = left + "px";
+    this.base.style.top = top + "px";
+    this.base.style.bottom = "auto";
     this.pointerId = event.pointerId;
     this.base.setPointerCapture(event.pointerId);
     this.updateJoystick(event);
@@ -91,6 +99,9 @@ export class MobileTouchInputManager {
     this.x = 0;
     this.y = 0;
     this.knob.style.transform = "translate(0px, 0px)";
+    this.base.style.left = "24px";
+    this.base.style.top = "auto";
+    this.base.style.bottom = "28px";
   };
 
   private updateJoystick(event: PointerEvent): void {
@@ -102,8 +113,16 @@ export class MobileTouchInputManager {
     const px = dx * scale;
     const py = dy * scale;
     this.knob.style.transform = `translate(${px}px, ${py}px)`;
-    this.x = px / this.joystickRadius;
-    this.y = py / this.joystickRadius;
+    const normalizedX = px / this.joystickRadius;
+    const normalizedY = py / this.joystickRadius;
+    const magnitude = Math.hypot(normalizedX, normalizedY);
+    if (magnitude < this.joystickDeadZone) {
+      this.x = 0;
+      this.y = 0;
+    } else {
+      this.x = normalizedX;
+      this.y = normalizedY;
+    }
   }
 
   private makeAction(label: string, background: string, callback: () => void, onRelease?: () => void): HTMLDivElement {
