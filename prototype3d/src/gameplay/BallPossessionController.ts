@@ -75,11 +75,6 @@ export class BallPossessionController {
         break;
       case BallState.LooseOnCourt:
         this.ball.step(dt);
-        if (this.state === BallState.InFlightShot && this.ball.position.y <= 0.12 + 0.015 &&
-            Math.abs(this.ball.velocity.y) < 1.2) {
-          this.state = BallState.LooseOnCourt;
-          this.options.onLooseBall?.();
-        }
         break;
     }
 
