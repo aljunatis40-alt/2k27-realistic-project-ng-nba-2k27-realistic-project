@@ -3,6 +3,7 @@ export interface MobileTouchInputCallbacks {
   onShootRelease?: () => void;
   onPass: () => void;
   onCrossover: () => void;
+  onSteal?: () => void;
 }
 
 export class MobileTouchInputManager {
@@ -47,7 +48,8 @@ export class MobileTouchInputManager {
     const shoot = this.makeAction("SHOOT", "#b33a32dd", callbacks.onShoot, callbacks.onShootRelease);
     const pass = this.makeAction("PASS", "#26734ddd", callbacks.onPass);
     const crossover = this.makeAction("CROSSOVER", "#234c83dd", callbacks.onCrossover);
-    actions.append(shoot, pass, crossover);
+    const steal = this.makeAction("STEAL", "#a66a20dd", callbacks.onSteal ?? (() => {}));
+    actions.append(shoot, pass, crossover, steal);
     this.root.appendChild(actions);
 
     window.addEventListener("blur", stopSprint);
