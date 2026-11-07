@@ -8,6 +8,8 @@ export interface GraphicsQualityOptions {
   keyLight: THREE.DirectionalLight;
   courtMaterial: THREE.MeshStandardMaterial;
   playerRoots?: THREE.Object3D[];
+  /** Optional parent for a future sweat-particle effect. */
+  playerSweatParticleSystem?: THREE.Object3D;
 }
 
 type PresetConfig = {
@@ -16,7 +18,7 @@ type PresetConfig = {
   shadows: boolean;
   shadowMapSize: number;
   shadowDistance: number;
-  courtRoughness: number;
+  courtGlossiness: number;
 };
 
 const PRESETS: Record<GraphicsPreset, PresetConfig> = {
@@ -26,7 +28,7 @@ const PRESETS: Record<GraphicsPreset, PresetConfig> = {
     shadows: false,
     shadowMapSize: 0,
     shadowDistance: 15,
-    courtRoughness: 0.9
+    courtGlossiness: 0.1
   },
   MobileMedium: {
     renderScale: 0.85,
@@ -34,7 +36,7 @@ const PRESETS: Record<GraphicsPreset, PresetConfig> = {
     shadows: true,
     shadowMapSize: 1024,
     shadowDistance: 35,
-    courtRoughness: 0.5
+    courtGlossiness: 0.5
   },
   NextGenUltra: {
     renderScale: 1,
@@ -42,7 +44,7 @@ const PRESETS: Record<GraphicsPreset, PresetConfig> = {
     shadows: true,
     shadowMapSize: 2048,
     shadowDistance: 75,
-    courtRoughness: 0.12
+    courtGlossiness: 0.95
   }
 };
 
@@ -64,7 +66,7 @@ export class GraphicsQualityManager {
   applyGraphicsSettingsPreset(preset: GraphicsPreset): void {
     this.activeGraphicsPreset = preset;
     const config = PRESETS[preset];
-    const { renderer, keyLight, courtMaterial, playerRoots = [] } = this.options;
+    const { renderer, keyLight, courtMaterial, playerRoots = [], playerSweatParticleSystem } = this.options;
 
     renderer.setPixelRatio(Math.max(0.5, this.basePixelRatio * config.renderScale));
     renderer.shadowMap.enabled = config.shadows;
@@ -81,7 +83,11 @@ export class GraphicsQualityManager {
       keyLight.shadow.needsUpdate = true;
     }
 
-    courtMaterial.roughness = config.courtRoughness;
+    // Unity _Glossiness is the inverse of Three.js roughness.
+    courtMaterial.roughness = 1 - config.courtGlossiness;
+    if (playerSweatParticleSystem) {
+      playerSweatParticleSystem.visible = preset !== "MobileLow";
+    }
     courtMaterial.needsUpdate = true;
 
     for (const root of playerRoots) {
