@@ -1,5 +1,6 @@
 export interface MobileTouchInputCallbacks {
   onShoot: () => void;
+  onShootRelease?: () => void;
   onPass: () => void;
   onCrossover: () => void;
 }
@@ -43,7 +44,7 @@ export class MobileTouchInputManager {
 
     const actions = this.makeControl("");
     actions.style.cssText = "position:fixed;right:18px;bottom:132px;display:flex;gap:7px;z-index:6";
-    const shoot = this.makeAction("SHOOT", "#b33a32dd", callbacks.onShoot);
+    const shoot = this.makeAction("SHOOT", "#b33a32dd", callbacks.onShoot, callbacks.onShootRelease);
     const pass = this.makeAction("PASS", "#26734ddd", callbacks.onPass);
     const crossover = this.makeAction("CROSSOVER", "#234c83dd", callbacks.onCrossover);
     actions.append(shoot, pass, crossover);
@@ -103,13 +104,20 @@ export class MobileTouchInputManager {
     this.y = py / this.joystickRadius;
   }
 
-  private makeAction(label: string, background: string, callback: () => void): HTMLDivElement {
+  private makeAction(label: string, background: string, callback: () => void, onRelease?: () => void): HTMLDivElement {
     const button = this.makeControl(label);
     button.style.cssText += `;min-width:58px;height:42px;padding:0 8px;border:1px solid #ffffff99;border-radius:10px;background:${background};font:700 10px Arial;touch-action:manipulation`;
     button.addEventListener("pointerdown", (event) => {
       event.preventDefault();
+      button.setPointerCapture(event.pointerId);
       callback();
     });
+    if (onRelease) {
+      const release = (): void => onRelease();
+      button.addEventListener("pointerup", release);
+      button.addEventListener("pointercancel", release);
+      button.addEventListener("lostpointercapture", release);
+    }
     return button;
   }
 
