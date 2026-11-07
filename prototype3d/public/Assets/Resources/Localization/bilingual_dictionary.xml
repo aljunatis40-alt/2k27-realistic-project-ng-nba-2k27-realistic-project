@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<localization defaultLanguage="English" secondaryLanguage="Tagalog">
+  <entry key="GAME_START"><en>Start Game</en><tl>Simulan ang Laro</tl></entry>
+  <entry key="SETTINGS"><en>Settings</en><tl>Mga Setting</tl></entry>
+  <entry key="LANGUAGE"><en>Language</en><tl>Wika</tl></entry>
+  <entry key="PASS"><en>Pass</en><tl>Pasa</tl></entry>
+  <entry key="SHOOT"><en>Shoot</en><tl>Tira</tl></entry>
+  <entry key="DRIVE"><en>Drive</en><tl>Drive</tl></entry>
+  <entry key="STEAL"><en>Steal</en><tl>Agaw</tl></entry>
+  <entry key="BLOCK"><en>Block</en><tl>Harang</tl></entry>
+  <entry key="TIMEOUT"><en>Timeout</en><tl>Timeout</tl></entry>
+  <entry key="SHOT_MADE"><en>Shot made</en><tl>Pasok ang tira</tl></entry>
+</localization>
