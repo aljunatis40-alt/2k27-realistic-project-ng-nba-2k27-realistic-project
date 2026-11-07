@@ -30,3 +30,11 @@ Next milestones: improve possession/shot physics, add teammate passing, implemen
 ## Advanced realism roadmap
 
 The proposed broadcast cameras, instant replay, commentary/audio, living arena, player/ball details, TV scoreboard, and mobile optimization architecture are documented in [`docs/ADVANCED_REALISM_ROADMAP.md`](docs/ADVANCED_REALISM_ROADMAP.md). These are planned systems, not features already implemented in v0.1.
+
+## Master development blueprint
+
+The expanded architecture, math/physics plan, camera/replay design, commentary, crowd/bench, sweat/net effects, bilingual UI, and mobile optimization plan are in [docs/MASTER_DEVELOPMENT_BLUEPRINT.md](docs/MASTER_DEVELOPMENT_BLUEPRINT.md).
+
+## Isolated 3D starter
+
+A separate Three.js + TypeScript foundation is in [prototype3d/](prototype3d/). It includes starter modules for typed game events, ball physics, broadcast camera profiles, replay snapshots, commentary queue, Tagalog/English localization, and instanced crowd rendering. It is not yet a playable 3D game and does not replace the root 2D prototype.
