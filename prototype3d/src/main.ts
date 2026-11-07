@@ -11,6 +11,7 @@ import { GraphicsQualityManager, type GraphicsPreset } from "./performance/Graph
 import { AudioMixerManager } from "./audio/AudioMixerManager.ts";
 import { ShotMeterEngine } from "./ui/ShotMeterEngine.ts";
 import { SweatParticleEngine } from "./graphics/SweatParticleEngine.ts";
+import { MatchLoopManager, MatchState } from "./gameplay/MatchLoopManager.ts";
 
 const root = document.querySelector<HTMLDivElement>("#app");
 if (!root) throw new Error("Missing #app root");
@@ -137,6 +138,34 @@ const graphicsQuality = new GraphicsQualityManager({
   courtMaterial,
   playerRoots: [player, ...offBallTeammates]
 });
+
+const matchStatus = document.createElement("div");
+matchStatus.style.cssText = "position:fixed;top:10px;left:10px;z-index:7;padding:8px 10px;border:1px solid #ffffff55;border-radius:10px;background:#101a2add;color:white;font:700 11px Arial;line-height:1.5";
+matchStatus.textContent = "Q1 12:00 | SHOT 24 | HOME 0 - 0 AWAY";
+root.appendChild(matchStatus);
+const matchStartButton = makeControl("START MATCH");
+matchStartButton.style.cssText += ";position:fixed;bottom:18px;left:50%;transform:translateX(-50%);z-index:7;padding:11px 18px;border:1px solid #ffffff88;border-radius:10px;background:#26734d";
+const matchLoop = new MatchLoopManager([player, ...offBallTeammates], ball, {
+  onClockChange: (game, shot, period) => {
+    const fmt = (value: number): string => {
+      const seconds = Math.ceil(value);
+      return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
+    };
+    const score = matchLoop.score;
+    matchStatus.textContent = `Q${period} ${fmt(game)} | SHOT ${fmt(shot)} | HOME ${score.home} - ${score.away} AWAY`;
+  },
+  onScoreChange: (home, away) => {
+    matchStatus.textContent = `Q${matchLoop.clocks.period} | HOME ${home} - ${away} AWAY`;
+  },
+  onStateChange: (state) => {
+    matchStartButton.textContent = state === MatchState.LivePlay ? "MATCH LIVE" :
+      state === MatchState.PostGame ? "FINAL" : state === MatchState.DeadBall ? "INBOUND..." : "START MATCH";
+    matchStartButton.style.opacity = state === MatchState.LivePlay || state === MatchState.PostGame ? "0.65" : "1";
+  },
+  onWhistle: (reason) => { console.info("[Match]", reason); }
+});
+matchStartButton.addEventListener("click", () => matchLoop.start());
+root.appendChild(matchStartButton);
 
 const offensiveAI = new OffensiveTeamAI({
   ballCarrier: player,
@@ -309,6 +338,7 @@ function animate(): void {
   const dt = Math.min(clock.getDelta(), 0.05);
   readInput();
   shotMeter.update(dt);
+  matchLoop.update(dt);
   fatigueEngine.update(dt, playerController.input.sprint);
   sweatEngine.update(dt);
   advancedMovement.update(dt);
