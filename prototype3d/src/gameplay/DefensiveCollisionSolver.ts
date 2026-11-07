@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import { BallPhysics } from "../simulation/BallPhysics.ts";
-import { BallPossessionController, type PlayerActor } from "./BallPossessionController.ts";
+import { BallPossessionController, BallState, type PlayerActor } from "./BallPossessionController.ts";
 
 /** Rating- and stamina-aware steal, block and shot-contest resolver. */
 export class DefensiveCollisionSolver {
@@ -23,7 +23,7 @@ export class DefensiveCollisionSolver {
     const rating = THREE.MathUtils.clamp(stealRating / 100, 0, 1);
     if (this.random() > rating * 0.35 * stamina) return false;
 
-    const direction = defender.getWorldDirection(new THREE.Vector3());
+    const direction = defender.mesh.getWorldDirection(new THREE.Vector3());
     direction.y = 0.2;
     if (direction.lengthSq() < 0.0001) direction.set(0, 0.2, 1);
     this.ball.velocity.copy(direction.normalize().multiplyScalar(6));
@@ -33,7 +33,7 @@ export class DefensiveCollisionSolver {
 
   evaluateShotBlockAttempt(defender: PlayerActor, shooter: PlayerActor, blockRating = 80): boolean {
     if (defender.isHomeTeam === shooter.isHomeTeam) return false;
-    if (this.possession.ballState !== "InFlightShot") return false;
+    if (this.possession.ballState !== BallState.InFlightShot) return false;
     if (defender.mesh.position.distanceTo(shooter.mesh.position) > this.blockReachRadius) return false;
 
     const stamina = THREE.MathUtils.clamp(defender.stamina / 100, 0, 1);
