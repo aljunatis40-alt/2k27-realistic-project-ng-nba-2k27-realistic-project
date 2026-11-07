@@ -1,0 +1,209 @@
+{
+  "game_title": "NBA 2K27 Realistic Project",
+  "database_version": "2026.11.07",
+  "data_status": "sample-only-user-provided-unverified",
+  "teams": [
+    {
+      "team_name": "Los Angeles Lakers",
+      "abbreviation": "LAL",
+      "conference": "Western",
+      "stadium": "Crypto.com Arena",
+      "roster": [
+        {
+          "id": "LAL023",
+          "name": "LeBron James",
+          "position": "SF",
+          "status": "Starter",
+          "biometrics": {
+            "age": 41,
+            "draft_year": 2003,
+            "draft_round": 1,
+            "draft_pick": 1,
+            "height_cm": 206,
+            "weight_kg": 113,
+            "skin_tone_id": "ST_08_DarkBronze",
+            "body_type": "Muscular_Heavy_Built"
+          },
+          "facial_details": {
+            "face_mesh_id": "FM_LBJ_2K27_100pct",
+            "hair_style": "Short_Receding_Fade",
+            "hair_color": "Black_With_Grey_Specks",
+            "beard_style": "Full_Connected_Beard",
+            "nose_shape": "Broad_Bridge_Flared_Nostrils",
+            "eye_color": "Brown",
+            "wrinkle_map": "High_Intensity_Forehead_And_Eyes"
+          },
+          "extremities": {
+            "hand_size_scale": 1.15,
+            "finger_tape_logic": "Left_Index_Tape_White",
+            "foot_size_us": 15,
+            "toe_tape_left": false,
+            "toe_tape_right": false
+          },
+          "accessories": {
+            "headband": {
+              "equipped": true,
+              "color_logic": "Team_Primary",
+              "logo_visible": true
+            },
+            "left_arm": "Full_Sleeve_Compression_Black",
+            "right_arm": "Padded_Elbow_Sleeve_Purple",
+            "left_leg": "Knee_Sleeve_Black",
+            "right_leg": "Knee_Sleeve_Black"
+          },
+          "verification": {
+            "status": "user-provided-unverified",
+            "source": "User supplied JSON",
+            "likeness_rights": "unknown"
+          }
+        },
+        {
+          "id": "LAL003",
+          "name": "Anthony Davis",
+          "position": "C",
+          "status": "Starter",
+          "biometrics": {
+            "age": 33,
+            "draft_year": 2012,
+            "draft_round": 1,
+            "draft_pick": 1,
+            "height_cm": 208,
+            "weight_kg": 115,
+            "skin_tone_id": "ST_06_MediumDark",
+            "body_type": "Athletic_Long_Limbs"
+          },
+          "facial_details": {
+            "face_mesh_id": "FM_AD_2K27_100pct",
+            "hair_style": "High_Top_Twists",
+            "hair_color": "Black",
+            "beard_style": "Connected_Unibrow_Signature",
+            "nose_shape": "Straight_Narrow_Bridge",
+            "eye_color": "Dark_Brown",
+            "wrinkle_map": "Medium_Intensity"
+          },
+          "extremities": {
+            "hand_size_scale": 1.2,
+            "finger_tape_logic": "None",
+            "foot_size_us": 17,
+            "toe_tape_left": false,
+            "toe_tape_right": false
+          },
+          "accessories": {
+            "headband": {
+              "equipped": false
+            },
+            "left_arm": "None",
+            "right_arm": "Arm_Sleeve_White",
+            "left_leg": "Full_Leg_Tights_Black",
+            "right_leg": "Full_Leg_Tights_Black"
+          },
+          "verification": {
+            "status": "user-provided-unverified",
+            "source": "User supplied JSON",
+            "likeness_rights": "unknown"
+          }
+        },
+        {
+          "id": "LAL009",
+          "name": "Dalton Knecht",
+          "position": "SG",
+          "status": "Bench",
+          "biometrics": {
+            "age": 25,
+            "draft_year": 2024,
+            "draft_round": 1,
+            "draft_pick": 17,
+            "height_cm": 198,
+            "weight_kg": 97,
+            "skin_tone_id": "ST_02_LightFair",
+            "body_type": "Lean_Athletic"
+          },
+          "facial_details": {
+            "face_mesh_id": "FM_DK_2K27_100pct",
+            "hair_style": "Short_Textured_Crop",
+            "hair_color": "Light_Brown",
+            "beard_style": "Light_Stubble",
+            "nose_shape": "Standard_Aquiline",
+            "eye_color": "Hazel",
+            "wrinkle_map": "Low_Rookie_Intensity"
+          },
+          "extremities": {
+            "hand_size_scale": 1.02,
+            "finger_tape_logic": "None",
+            "foot_size_us": 14,
+            "toe_tape_left": false,
+            "toe_tape_right": false
+          },
+          "accessories": {
+            "headband": {
+              "equipped": false
+            },
+            "left_arm": "Wristband_White",
+            "right_arm": "None",
+            "left_leg": "Short_Under_Compressions",
+            "right_leg": "Short_Under_Compressions"
+          },
+          "verification": {
+            "status": "user-provided-unverified",
+            "source": "User supplied JSON",
+            "likeness_rights": "unknown"
+          }
+        }
+      ]
+    },
+    {
+      "team_name": "Golden State Warriors",
+      "abbreviation": "GSW",
+      "conference": "Western",
+      "stadium": "Chase Center",
+      "roster": [
+        {
+          "id": "GSW030",
+          "name": "Stephen Curry",
+          "position": "PG",
+          "status": "Starter",
+          "biometrics": {
+            "age": 38,
+            "draft_year": 2009,
+            "draft_round": 1,
+            "draft_pick": 7,
+            "height_cm": 188,
+            "weight_kg": 84,
+            "skin_tone_id": "ST_04_LightMulatto",
+            "body_type": "Wire_Lean_Cut"
+          },
+          "facial_details": {
+            "face_mesh_id": "FM_SC_2K27_100pct",
+            "hair_style": "Low_Fade_Curly_Top",
+            "hair_color": "Dark_Brown",
+            "beard_style": "Trimmed_Gooatee_Patchy_Sides",
+            "nose_shape": "Soft_Rounded_Tip",
+            "eye_color": "Greenish_Brown",
+            "wrinkle_map": "Medium_Smile_Lines"
+          },
+          "extremities": {
+            "hand_size_scale": 0.98,
+            "finger_tape_logic": "None",
+            "foot_size_us": 13.5,
+            "toe_tape_left": true,
+            "toe_tape_right": true
+          },
+          "accessories": {
+            "headband": {
+              "equipped": false
+            },
+            "left_arm": "Wristband_Rubber_Yellow",
+            "right_arm": "Hex_Pad_Elbow_Sleeve",
+            "left_leg": "Ankle_Brace_Heavy_Duty",
+            "right_leg": "Ankle_Brace_Heavy_Duty"
+          },
+          "verification": {
+            "status": "user-provided-unverified",
+            "source": "User supplied JSON",
+            "likeness_rights": "unknown"
+          }
+        }
+      ]
+    }
+  ]
+}
