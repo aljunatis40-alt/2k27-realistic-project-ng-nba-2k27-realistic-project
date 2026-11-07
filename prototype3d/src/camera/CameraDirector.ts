@@ -1,41 +1,76 @@
 import * as THREE from "three";
 
-export type CameraMode =
-  | "2k" | "broadcast" | "drive" | "nosebleed" | "rim" | "playerPOV";
+export type CameraMode = "2k" | "broadcast" | "nosebleed" | "rim";
 
-type Profile = { offset: THREE.Vector3; fov: number; damping: number };
-
-const profiles: Record<CameraMode, Profile> = {
-  "2k": { offset: new THREE.Vector3(0, 15, 12), fov: 48, damping: 5 },
-  broadcast: { offset: new THREE.Vector3(0, 21, 4), fov: 42, damping: 3 },
-  drive: { offset: new THREE.Vector3(-7, 5, 5), fov: 58, damping: 8 },
-  nosebleed: { offset: new THREE.Vector3(0, 34, 0), fov: 38, damping: 2 },
-  rim: { offset: new THREE.Vector3(4, 5, 7), fov: 62, damping: 7 },
-  playerPOV: { offset: new THREE.Vector3(0, 2, -1), fov: 76, damping: 10 }
+type CameraProfile = {
+  offset: THREE.Vector3;
+  fov: number;
+  positionSmoothSpeed: number;
+  rotationSmoothSpeed: number;
 };
 
-export class CameraDirector {
-  mode: CameraMode = "broadcast";
-  private readonly desired = new THREE.Vector3();
+const profiles: Record<CameraMode, CameraProfile> = {
+  "2k": {
+    offset: new THREE.Vector3(0, 8.5, 9),
+    fov: 48,
+    positionSmoothSpeed: 4.5,
+    rotationSmoothSpeed: 6
+  },
+  broadcast: {
+    offset: new THREE.Vector3(14, 6, 0),
+    fov: 42,
+    positionSmoothSpeed: 4.5,
+    rotationSmoothSpeed: 6
+  },
+  nosebleed: {
+    offset: new THREE.Vector3(22, 15, -2),
+    fov: 38,
+    positionSmoothSpeed: 3,
+    rotationSmoothSpeed: 4
+  },
+  rim: {
+    offset: new THREE.Vector3(0, 3.5, 4.5),
+    fov: 62,
+    positionSmoothSpeed: 6,
+    rotationSmoothSpeed: 7
+  }
+};
 
-  constructor(private readonly camera: THREE.PerspectiveCamera) {}
+/** Smooth camera presets translated from the Unity camera-engine specification. */
+export class CameraDirector {
+  mode: CameraMode = "2k";
+  private readonly desiredPosition = new THREE.Vector3();
+  private readonly lookDirection = new THREE.Vector3();
+  private readonly worldUp = new THREE.Vector3(0, 1, 0);
+
+  constructor(private readonly camera: THREE.PerspectiveCamera) {
+    this.camera.fov = profiles[this.mode].fov;
+    this.camera.updateProjectionMatrix();
+  }
 
   setMode(mode: CameraMode): void {
     this.mode = mode;
   }
 
-  update(dt: number, focus: THREE.Vector3, orbitYaw = 0): void {
+  update(dt: number, focus: THREE.Vector3): void {
     const profile = profiles[this.mode];
-    this.desired.copy(profile.offset).applyAxisAngle(
-      new THREE.Vector3(0, 1, 0), orbitYaw
-    ).add(focus);
+    const safeDt = Math.max(0, Math.min(dt, 0.05));
+    const positionAlpha = 1 - Math.exp(-profile.positionSmoothSpeed * safeDt);
+    const rotationAlpha = 1 - Math.exp(-profile.rotationSmoothSpeed * safeDt);
 
-    const alpha = 1 - Math.exp(-profile.damping * dt);
-    this.camera.position.lerp(this.desired, alpha);
-    this.camera.lookAt(focus);
-    this.camera.fov = THREE.MathUtils.damp(
-      this.camera.fov, profile.fov, profile.damping, dt
-    );
+    this.desiredPosition.copy(focus).add(profile.offset);
+    this.camera.position.lerp(this.desiredPosition, positionAlpha);
+
+    this.lookDirection.copy(focus).sub(this.camera.position);
+    if (this.lookDirection.lengthSq() > 0.0001) {
+      const desiredRotation = new THREE.Quaternion().setFromRotationMatrix(
+        new THREE.Matrix4().lookAt(this.camera.position, focus, this.worldUp)
+      );
+      this.camera.quaternion.slerp(desiredRotation, rotationAlpha);
+    }
+
+    const fovAlpha = 1 - Math.exp(-profile.positionSmoothSpeed * safeDt);
+    this.camera.fov = THREE.MathUtils.lerp(this.camera.fov, profile.fov, fovAlpha);
     this.camera.updateProjectionMatrix();
   }
 }
