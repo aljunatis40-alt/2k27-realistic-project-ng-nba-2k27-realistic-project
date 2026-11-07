@@ -5,6 +5,7 @@ import { PlayerController } from "./controller/PlayerController.ts";
 import { CameraDirector, type CameraMode } from "./camera/CameraDirector.ts";
 import { PlayerFatigueEngine } from "./simulation/PlayerFatigueEngine.ts";
 import { AdvancedMovementController } from "./controller/AdvancedMovementController.ts";
+import { OffensiveTeamAI, type OffensivePlayCall } from "./ai/OffensiveTeamAI.ts";
 
 const root = document.querySelector<HTMLDivElement>("#app");
 if (!root) throw new Error("Missing #app root");
@@ -55,6 +56,26 @@ player.add(rightLeg);
 player.position.set(0, 0, 2.5);
 scene.add(player);
 
+const offBallTeammates: THREE.Group[] = [];
+for (let i = 0; i < 4; i++) {
+  const teammate = new THREE.Group();
+  const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.26, 0.6, 5, 10), jersey);
+  body.position.y = 0.86;
+  const teammateHead = new THREE.Mesh(new THREE.SphereGeometry(0.18, 14, 10), skin);
+  teammateHead.position.y = 1.46;
+  teammate.add(body, teammateHead);
+  const legA = new THREE.Mesh(new THREE.CapsuleGeometry(0.095, 0.45, 4, 8), jersey);
+  legA.position.set(-0.13, 0.27, 0);
+  const legB = legA.clone();
+  legB.position.x = 0.13;
+  teammate.add(legA, legB);
+  const startX = i < 2 ? (i === 0 ? -4.5 : 4.5) : (i === 2 ? -5.5 : 5.5);
+  const startZ = i < 2 ? -1.5 : 3.8;
+  teammate.position.set(startX, 0, startZ);
+  scene.add(teammate);
+  offBallTeammates.push(teammate);
+}
+
 const fatigueEngine = new PlayerFatigueEngine([skin], { maxStamina: 100, sprintBurnRate: 3.5, recoveryRate: 2.0 });
 
 const playerController = new PlayerController(player, {
@@ -95,6 +116,14 @@ const advancedMovement = new AdvancedMovementController(player, playerController
   }
 });
 
+const offensiveAI = new OffensiveTeamAI({
+  ballCarrier: player,
+  teammates: offBallTeammates,
+  basketPosition: hoopPosition,
+  moveSpeed: 3.9,
+  arrivalRadius: 0.28
+});
+
 const fixedStep = new FixedStepRunner(120);
 const clock = new THREE.Clock();
 const keys = new Set<string>();
@@ -129,6 +158,27 @@ for (const item of cameraModes) {
   cameraMenu.appendChild(button);
 }
 root.appendChild(cameraMenu);
+
+const playbookMenu = document.createElement("div");
+playbookMenu.style.cssText = "position:fixed;left:10px;top:48px;display:flex;flex-direction:column;gap:5px;z-index:5";
+const playOptions: Array<{ label: string; play: OffensivePlayCall }> = [
+  { label: "FIVE OUT", play: "FiveOutSpacing" },
+  { label: "PICK & ROLL", play: "PickAndRoll" },
+  { label: "BASELINE CUT", play: "BaselineCut" }
+];
+for (const option of playOptions) {
+  const button = makeControl(option.label);
+  button.style.cssText += ";min-width:92px;min-height:32px;padding:0 8px;border:1px solid #ffffff88;border-radius:8px;background:#101a2add;font:700 9px Arial";
+  button.addEventListener("click", () => {
+    offensiveAI.setPlay(option.play);
+    for (const child of Array.from(playbookMenu.children) as HTMLDivElement[]) child.style.background = child === button ? "#26734d" : "#101a2add";
+  });
+  if (option.play === "FiveOutSpacing") button.style.background = "#26734d";
+  playbookMenu.appendChild(button);
+}
+root.appendChild(playbookMenu);
+
+
 
 function makeControl(label: string): HTMLDivElement {
   const el = document.createElement("div");
@@ -235,6 +285,7 @@ function animate(): void {
   readInput();
   fatigueEngine.update(dt, playerController.input.sprint);
   advancedMovement.update(dt);
+  offensiveAI.update(dt);
   player.position.x = THREE.MathUtils.clamp(player.position.x, -6.8, 6.8);
   player.position.z = THREE.MathUtils.clamp(player.position.z, -10.8, 10.8);
 
