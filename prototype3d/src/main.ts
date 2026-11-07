@@ -309,7 +309,8 @@ function animate(): void {
   const dt = Math.min(clock.getDelta(), 0.05);
   readInput();
   shotMeter.update(dt);
-  fatigueEngine.update(dt, playerController.input.sprint);\n  sweatEngine.update(dt);
+  fatigueEngine.update(dt, playerController.input.sprint);
+  sweatEngine.update(dt);
   advancedMovement.update(dt);
   offensiveAI.update(dt);
   player.position.x = THREE.MathUtils.clamp(player.position.x, -6.8, 6.8);
