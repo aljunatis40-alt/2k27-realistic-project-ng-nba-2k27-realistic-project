@@ -73,10 +73,24 @@ jobs:
       - name: Audit timer cleanup and lifecycle hazards
         run: npm run audit:memory
 
+  roster_integrity:
+    name: Roster JSON integrity validation
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Validate current sample roster JSON
+        run: |
+          node -e "const fs=require('fs'); const p='prototype3d/src/data/roster-sample-2026-27.json'; const data=JSON.parse(fs.readFileSync(p,'utf8')); if (!Array.isArray(data)) throw new Error('Roster root must be an array'); console.log('Roster JSON valid:', data.length, 'entries');"
+
   upload_build:
     name: Publish prototype build artifact
     runs-on: ubuntu-latest
-    needs: [code_compilation, asset_bundle_validation, memory_leak_check]
+    needs: [code_compilation, asset_bundle_validation, memory_leak_check, roster_integrity]
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
