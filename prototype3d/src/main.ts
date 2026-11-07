@@ -289,6 +289,7 @@ playbookMenu.style.cssText = "position:fixed;left:10px;top:48px;display:flex;fle
 const playOptions: Array<{ label: string; play: OffensivePlayCall }> = [
   { label: "FIVE OUT", play: "FiveOutSpacing" },
   { label: "PICK & ROLL", play: "PickAndRoll" },
+  { label: "PICK & ROLL SLIP", play: "PickAndRollSlip" },
   { label: "BASELINE CUT", play: "BaselineCut" }
 ];
 for (const option of playOptions) {
