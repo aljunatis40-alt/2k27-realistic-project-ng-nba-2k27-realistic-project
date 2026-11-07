@@ -143,10 +143,12 @@ const matchStatus = document.createElement("div");
 matchStatus.style.cssText = "position:fixed;top:10px;left:10px;z-index:7;padding:8px 10px;border:1px solid #ffffff55;border-radius:10px;background:#101a2add;color:white;font:700 11px Arial;line-height:1.5";
 matchStatus.textContent = "Q1 12:00 | SHOT 24 | HOME 0 - 0 AWAY";
 root.appendChild(matchStatus);
+let currentMatchPeriod = 1;
 const matchStartButton = makeControl("START MATCH");
 matchStartButton.style.cssText += ";position:fixed;bottom:18px;left:50%;transform:translateX(-50%);z-index:7;padding:11px 18px;border:1px solid #ffffff88;border-radius:10px;background:#26734d";
 const matchLoop = new MatchLoopManager([player, ...offBallTeammates], ball, {
   onClockChange: (game, shot, period) => {
+    currentMatchPeriod = period;
     const fmt = (value: number): string => {
       const seconds = Math.ceil(value);
       return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
@@ -155,7 +157,7 @@ const matchLoop = new MatchLoopManager([player, ...offBallTeammates], ball, {
     matchStatus.textContent = `Q${period} ${fmt(game)} | SHOT ${fmt(shot)} | HOME ${score.home} - ${score.away} AWAY`;
   },
   onScoreChange: (home, away) => {
-    matchStatus.textContent = `Q${matchLoop.clocks.period} | HOME ${home} - ${away} AWAY`;
+    matchStatus.textContent = `Q${currentMatchPeriod} | HOME ${home} - ${away} AWAY`;
   },
   onStateChange: (state) => {
     matchStartButton.textContent = state === MatchState.LivePlay ? "MATCH LIVE" :
