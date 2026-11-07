@@ -7,6 +7,7 @@ import { PlayerFatigueEngine } from "./simulation/PlayerFatigueEngine.ts";
 import { AdvancedMovementController } from "./controller/AdvancedMovementController.ts";
 import { OffensiveTeamAI, type OffensivePlayCall } from "./ai/OffensiveTeamAI.ts";
 import { MobileTouchInputManager } from "./ui/MobileTouchInputManager.ts";
+import { GraphicsQualityManager, type GraphicsPreset } from "./performance/GraphicsQualityManager.ts";
 
 const root = document.querySelector<HTMLDivElement>("#app");
 if (!root) throw new Error("Missing #app root");
@@ -117,7 +118,7 @@ const advancedMovement = new AdvancedMovementController(player, playerController
   }
 });
 
-const offensiveAI = new OffensiveTeamAI({
+const graphicsQuality = new GraphicsQualityManager({\n  renderer,\n  scene,\n  keyLight,\n  courtMaterial,\n  playerRoots: [player, ...offBallTeammates]\n});\n\nconst offensiveAI = new OffensiveTeamAI({
   ballCarrier: player,
   teammates: offBallTeammates,
   basketPosition: hoopPosition,
@@ -159,6 +160,28 @@ for (const item of cameraModes) {
   cameraMenu.appendChild(button);
 }
 root.appendChild(cameraMenu);
+
+// Runtime graphics selector: Low / Medium / Ultra.
+const qualityMenu = document.createElement("div");
+qualityMenu.style.cssText = "position:fixed;top:92px;right:10px;display:flex;gap:5px;z-index:5";
+const qualityOptions: Array<{ label: string; preset: GraphicsPreset }> = [
+  { label: "LOW", preset: "MobileLow" },
+  { label: "MED", preset: "MobileMedium" },
+  { label: "ULTRA", preset: "NextGenUltra" }
+];
+for (const option of qualityOptions) {
+  const button = makeControl(option.label);
+  button.style.cssText += ";min-height:30px;padding:0 9px;border:1px solid #ffffff88;border-radius:8px;background:#101a2add;font:700 10px Arial";
+  button.addEventListener("click", () => {
+    graphicsQuality.applyGraphicsSettingsPreset(option.preset);
+    for (const child of Array.from(qualityMenu.children) as HTMLDivElement[]) {
+      child.style.background = child === button ? "#26734d" : "#101a2add";
+    }
+  });
+  if (option.preset === "MobileMedium") button.style.background = "#26734d";
+  qualityMenu.appendChild(button);
+}
+root.appendChild(qualityMenu);
 
 const playbookMenu = document.createElement("div");
 playbookMenu.style.cssText = "position:fixed;left:10px;top:48px;display:flex;flex-direction:column;gap:5px;z-index:5";
@@ -260,7 +283,7 @@ function animate(): void {
     cameraFocus.lerp(handlerFocus, 0.4);
   }
   cameraDirector.update(dt, cameraFocus);
-  renderer.render(scene, camera);
+  if (graphicsQuality.shouldRender(performance.now())) renderer.render(scene, camera);
   requestAnimationFrame(animate);
 }
 animate();
