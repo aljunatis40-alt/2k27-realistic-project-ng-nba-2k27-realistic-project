@@ -73,7 +73,7 @@ export class BallPossessionController {
       case BallState.InFlightShot:
       case BallState.LooseOnCourt:
         this.ball.step(dt);
-        if (this.state === BallState.InFlightShot && this.ball.position.y <= this.ball.radius + 0.015 &&
+        if (this.state === BallState.InFlightShot && this.ball.position.y <= 0.12 + 0.015 &&
             Math.abs(this.ball.velocity.y) < 1.2) {
           this.state = BallState.LooseOnCourt;
           this.options.onLooseBall?.();
@@ -153,7 +153,7 @@ export class BallPossessionController {
     this.handler.handNode.getWorldPosition(this.handPosition);
     const bounce = Math.abs(Math.sin(this.elapsed * this.dribbleFrequency)) * this.dribbleHeight;
     this.ball.position.copy(this.handPosition);
-    this.ball.position.y = Math.max(this.ball.radius, this.handPosition.y - bounce);
+    this.ball.position.y = Math.max(0.12, this.handPosition.y - bounce);
     this.ball.velocity.set(0, 0, 0);
   }
 
