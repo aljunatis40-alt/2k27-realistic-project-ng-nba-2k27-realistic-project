@@ -12,6 +12,7 @@ import { AudioMixerManager } from "./audio/AudioMixerManager.ts";
 import { ShotMeterEngine } from "./ui/ShotMeterEngine.ts";
 import { SweatParticleEngine } from "./graphics/SweatParticleEngine.ts";
 import { MatchLoopManager, MatchState } from "./gameplay/MatchLoopManager.ts";
+import { BallPossessionController, type PlayerActor } from "./gameplay/BallPossessionController.ts";
 
 const root = document.querySelector<HTMLDivElement>("#app");
 if (!root) throw new Error("Missing #app root");
@@ -111,7 +112,7 @@ const ball = new THREE.Mesh(
 );
 scene.add(ball);
 const ballPhysics = new BallPhysics();
-ballPhysics.launch(new THREE.Vector3(0, 2.2, 0), new THREE.Vector3(1.2, 2.8, 0.2));
+ballPhysics.position.set(0, 1.25, 2.1);
 
 let shotAccuracyOffset = 0;
 
@@ -128,8 +129,27 @@ const advancedMovement = new AdvancedMovementController(player, playerController
       ? new THREE.Vector3(horizontal.x * 3.2, 3.8, horizontal.z * 3.2)
       : new THREE.Vector3(horizontal.x * 7.2, 6.1, horizontal.z * 7.2);
     ballPhysics.launch(origin, velocity);
+    ballPossession.beginShotFlight();
   }
 });
+
+const createHandNode = (owner: THREE.Object3D): THREE.Object3D => {
+  const hand = new THREE.Object3D();
+  hand.position.set(0.34, 1.05, 0.08);
+  owner.add(hand);
+  return hand;
+};
+const playerActors: PlayerActor[] = [
+  { id: "home-01", isHomeTeam: true, mesh: player, position: player.position, handNode: createHandNode(player), stamina: 100 },
+  ...offBallTeammates.map((mesh, index): PlayerActor => ({
+    id: "home-0" + (index + 2), isHomeTeam: true, mesh, position: mesh.position,
+    handNode: createHandNode(mesh), stamina: 100
+  }))
+];
+const ballPossession = new BallPossessionController(ballPhysics, ball, {
+  onPassCaught: (receiver) => { console.info("[Possession] Pass caught by", receiver.id); }
+});
+ballPossession.assignPossession(playerActors[0]);
 
 const graphicsQuality = new GraphicsQualityManager({
   renderer,
@@ -295,11 +315,9 @@ const mobileInput = new MobileTouchInputManager(root, {
       }
     }
     if (receiver) {
-      const origin = player.position.clone().add(new THREE.Vector3(0, 1.25, 0));
-      const direction = receiver.position.clone().add(new THREE.Vector3(0, 1, 0)).sub(origin);
-      const distance = direction.length();
-      direction.normalize();
-      ballPhysics.launch(origin, direction.multiplyScalar(Math.min(11, 5 + distance * 0.65)));
+      const fromActor = ballPossession.getCurrentHandler();
+      const receiverActor = playerActors.find((actor) => actor.mesh === receiver);
+      if (fromActor && receiverActor) ballPossession.initiatePassTransfer(fromActor, receiverActor, 0.48);
     }
   },
   onCrossover: () => { advancedMovement.triggerCrossover(); }
@@ -348,7 +366,7 @@ function animate(): void {
   player.position.x = THREE.MathUtils.clamp(player.position.x, -6.8, 6.8);
   player.position.z = THREE.MathUtils.clamp(player.position.z, -10.8, 10.8);
 
-  fixedStep.update(dt, (step) => ballPhysics.step(step));
+  fixedStep.update(dt, (step) => ballPossession.update(step));
   ball.position.copy(ballPhysics.position);
 
   const cameraFocus = ball.position.clone();
