@@ -15,6 +15,7 @@ import { SweatParticleEngine } from "./graphics/SweatParticleEngine.ts";
 import { MatchLoopManager, MatchState } from "./gameplay/MatchLoopManager.ts";
 import { BallPossessionController, type PlayerActor } from "./gameplay/BallPossessionController.ts";
 import { DefensiveCollisionSolver } from "./gameplay/DefensiveCollisionSolver.ts";
+import { PlayerHUDRenderer } from "./ui/PlayerHUDRenderer.ts";
 
 const root = document.querySelector<HTMLDivElement>("#app");
 if (!root) throw new Error("Missing #app root");
@@ -170,6 +171,8 @@ for (let i = 0; i < 5; i++) {
 }
 const defensiveSolver = new DefensiveCollisionSolver(ballPossession, ballPhysics);
 const allActors = [...playerActors, ...awayActors];
+const playerHUD = new PlayerHUDRenderer(camera, root);
+for (const actor of allActors) playerHUD.registerPlayerHUDElement(actor);
 
 
 const graphicsQuality = new GraphicsQualityManager({
@@ -406,6 +409,7 @@ function animate(): void {
   fixedStep.update(dt, (step) => ballPossession.update(step));
   if (ballPossession.ballState === "LooseOnCourt") ballPossession.tryRecoverLooseBall(allActors);
   ball.position.copy(ballPhysics.position);
+  playerHUD.updateHUDOverlays(allActors);
 
   const cameraFocus = ball.position.clone();
   if (cameraDirector.mode === "2k") {
