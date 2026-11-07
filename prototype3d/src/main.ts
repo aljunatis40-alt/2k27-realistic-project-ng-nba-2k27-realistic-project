@@ -6,6 +6,7 @@ import { CameraDirector, type CameraMode } from "./camera/CameraDirector.ts";
 import { PlayerFatigueEngine } from "./simulation/PlayerFatigueEngine.ts";
 import { AdvancedMovementController } from "./controller/AdvancedMovementController.ts";
 import { OffensiveTeamAI, type OffensivePlayCall } from "./ai/OffensiveTeamAI.ts";
+import { MobileTouchInputManager } from "./ui/MobileTouchInputManager.ts";
 
 const root = document.querySelector<HTMLDivElement>("#app");
 if (!root) throw new Error("Missing #app root");
@@ -187,88 +188,49 @@ function makeControl(label: string): HTMLDivElement {
   return el;
 }
 
-// Mobile virtual joystick.
-const stickBase = makeControl("");
-stickBase.style.cssText += ";position:fixed;left:24px;bottom:28px;width:124px;height:124px;border:2px solid #ffffff88;border-radius:50%;background:#101a2a88";
-const stickKnob = makeControl("");
-stickKnob.style.cssText += ";width:48px;height:48px;border-radius:50%;background:#ffffffcc;box-shadow:0 2px 12px #0008";
-stickBase.appendChild(stickKnob);
-root.appendChild(stickBase);
-
-let stickPointer: number | null = null;
-function updateStick(event: PointerEvent): void {
-  const rect = stickBase.getBoundingClientRect();
-  const cx = rect.left + rect.width / 2;
-  const cy = rect.top + rect.height / 2;
-  const dx = event.clientX - cx;
-  const dy = event.clientY - cy;
-  const max = 43;
-  const length = Math.hypot(dx, dy);
-  const scale = length > max ? max / length : 1;
-  const px = dx * scale;
-  const py = dy * scale;
-  stickKnob.style.transform = `translate(${px}px, ${py}px)`;
-  joystickX = px / max;
-  joystickZ = py / max;
-}
-stickBase.addEventListener("pointerdown", (event) => {
-  stickPointer = event.pointerId;
-  stickBase.setPointerCapture(event.pointerId);
-  updateStick(event);
+// Unified mobile controls.
+const mobileInput = new MobileTouchInputManager(root, {
+  onShoot: () => {
+    advancedMovement.requestShot(mobileInput.isSprinting || keys.has("ShiftLeft") || keys.has("ShiftRight"));
+  },
+  onPass: () => {
+    let receiver: THREE.Group | undefined;
+    let nearestDistance = Number.POSITIVE_INFINITY;
+    for (const teammate of offBallTeammates) {
+      const distance = player.position.distanceTo(teammate.position);
+      if (distance < nearestDistance) {
+        nearestDistance = distance;
+        receiver = teammate;
+      }
+    }
+    if (receiver) {
+      const origin = player.position.clone().add(new THREE.Vector3(0, 1.25, 0));
+      const direction = receiver.position.clone().add(new THREE.Vector3(0, 1, 0)).sub(origin);
+      const distance = direction.length();
+      direction.normalize();
+      ballPhysics.launch(origin, direction.multiplyScalar(Math.min(11, 5 + distance * 0.65)));
+    }
+  },
+  onCrossover: () => { advancedMovement.triggerCrossover(); }
 });
-stickBase.addEventListener("pointermove", (event) => {
-  if (event.pointerId === stickPointer) updateStick(event);
-});
-function releaseStick(event: PointerEvent): void {
-  if (event.pointerId !== stickPointer) return;
-  stickPointer = null;
-  joystickX = 0;
-  joystickZ = 0;
-  stickKnob.style.transform = "translate(0px, 0px)";
-}
-stickBase.addEventListener("pointerup", releaseStick);
-stickBase.addEventListener("pointercancel", releaseStick);
-
-const sprintButton = makeControl("SPRINT");
-sprintButton.style.cssText += ";position:fixed;right:26px;bottom:42px;width:76px;height:76px;border-radius:50%;border:2px solid #ffffff99;background:#b33a32dd;box-shadow:0 3px 12px #0008";
-sprintButton.addEventListener("pointerdown", (event) => {
-  event.preventDefault();
-  sprintHeld = true;
-});
-const stopSprint = (): void => { sprintHeld = false; };
-sprintButton.addEventListener("pointerup", stopSprint);
-sprintButton.addEventListener("pointercancel", stopSprint);
-sprintButton.addEventListener("lostpointercapture", stopSprint);
-root.appendChild(sprintButton);
-
-const actionMenu = document.createElement("div");
-actionMenu.style.cssText = "position:fixed;right:18px;bottom:132px;display:flex;gap:8px;z-index:6";
-const crossoverButton = makeControl("CROSSOVER");
-crossoverButton.style.cssText += ";min-width:88px;height:42px;padding:0 9px;border:1px solid #ffffff99;border-radius:10px;background:#234c83dd";
-crossoverButton.addEventListener("pointerdown", (event) => { event.preventDefault(); advancedMovement.triggerCrossover(); });
-const shootButton = makeControl("SHOOT");
-shootButton.style.cssText += ";min-width:72px;height:42px;padding:0 9px;border:1px solid #ffffff99;border-radius:10px;background:#b33a32dd";
-shootButton.addEventListener("pointerdown", (event) => { event.preventDefault(); advancedMovement.requestShot(sprintHeld || keys.has("ShiftLeft") || keys.has("ShiftRight")); });
-actionMenu.append(crossoverButton, shootButton);
-root.appendChild(actionMenu);
-
 
 window.addEventListener("keydown", (event) => {
   keys.add(event.code);
   if (event.code === "KeyE") advancedMovement.triggerCrossover();
-  if (event.code === "Space") advancedMovement.requestShot(sprintHeld || keys.has("ShiftLeft") || keys.has("ShiftRight"));
+  if (event.code === "Space") advancedMovement.requestShot(keys.has("ShiftLeft") || keys.has("ShiftRight"));
   if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "Space"].includes(event.code)) event.preventDefault();
 });
 window.addEventListener("keyup", (event) => keys.delete(event.code));
-window.addEventListener("blur", () => { keys.clear(); sprintHeld = false; });
+window.addEventListener("blur", () => { keys.clear(); });
 
 function readInput(): void {
   const keyboardX = Number(keys.has("KeyD") || keys.has("ArrowRight")) - Number(keys.has("KeyA") || keys.has("ArrowLeft"));
   const keyboardZ = Number(keys.has("KeyS") || keys.has("ArrowDown")) - Number(keys.has("KeyW") || keys.has("ArrowUp"));
   const useKeyboard = keyboardX !== 0 || keyboardZ !== 0;
-  const x = useKeyboard ? keyboardX : joystickX;
-  const z = useKeyboard ? keyboardZ : joystickZ;
-  const sprintRequested = sprintHeld || keys.has("ShiftLeft") || keys.has("ShiftRight");
+  const touch = mobileInput.getMovementInputDirectionalVector();
+  const x = useKeyboard ? keyboardX : touch.x;
+  const z = useKeyboard ? keyboardZ : touch.z;
+  const sprintRequested = mobileInput.isSprinting || keys.has("ShiftLeft") || keys.has("ShiftRight");
   const sprint = sprintRequested && fatigueEngine.canSprint;
   advancedMovement.setMovementInput(x, z, sprint);
 }
