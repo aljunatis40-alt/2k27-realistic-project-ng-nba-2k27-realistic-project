@@ -1,0 +1,40 @@
+name: Build NBA 2K27 3D Prototype
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "prototype3d/**"
+      - ".github/workflows/build-3d-prototype.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "prototype3d/**"
+      - ".github/workflows/build-3d-prototype.yml"
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: prototype3d
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: prototype3d/package-lock.json
+      - name: Install dependencies
+        run: npm install
+      - name: Type-check and build
+        run: npm run build
+      - name: Upload 3D prototype build
+        uses: actions/upload-artifact@v4
+        with:
+          name: nba-2k27-3d-prototype
+          path: prototype3d/dist/
+          if-no-files-found: error
