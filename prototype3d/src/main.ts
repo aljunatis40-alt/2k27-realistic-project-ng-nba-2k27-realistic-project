@@ -13,6 +13,7 @@ import { ShotMeterEngine } from "./ui/ShotMeterEngine.ts";
 import { SweatParticleEngine } from "./graphics/SweatParticleEngine.ts";
 import { MatchLoopManager, MatchState } from "./gameplay/MatchLoopManager.ts";
 import { BallPossessionController, type PlayerActor } from "./gameplay/BallPossessionController.ts";
+import { DefensiveCollisionSolver } from "./gameplay/DefensiveCollisionSolver.ts";
 
 const root = document.querySelector<HTMLDivElement>("#app");
 if (!root) throw new Error("Missing #app root");
@@ -150,6 +151,22 @@ const ballPossession = new BallPossessionController(ballPhysics, ball, {
   onPassCaught: (receiver) => { console.info("[Possession] Pass caught by", receiver.id); }
 });
 ballPossession.assignPossession(playerActors[0]);
+const awayMaterial = new THREE.MeshStandardMaterial({ color: "#d94a45", roughness: 0.7 });
+const awayActors: PlayerActor[] = [];
+for (let i = 0; i < 5; i++) {
+  const opponent = new THREE.Group();
+  const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.27, 0.62, 5, 10), awayMaterial);
+  body.position.y = 0.88;
+  const opponentHead = new THREE.Mesh(new THREE.SphereGeometry(0.185, 14, 10), skin);
+  opponentHead.position.y = 1.48;
+  opponent.add(body, opponentHead);
+  opponent.position.set((i - 2) * 1.65, 0, i === 2 ? 0.9 : -1.1);
+  scene.add(opponent);
+  awayActors.push({ id: "away-0" + (i + 1), isHomeTeam: false, mesh: opponent, position: opponent.position, handNode: createHandNode(opponent), stamina: 100 });
+}
+const defensiveSolver = new DefensiveCollisionSolver(ballPossession, ballPhysics);
+const allActors = [...playerActors, ...awayActors];
+
 
 const graphicsQuality = new GraphicsQualityManager({
   renderer,
