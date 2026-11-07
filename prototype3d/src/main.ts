@@ -119,7 +119,15 @@ const advancedMovement = new AdvancedMovementController(player, playerController
   }
 });
 
-const graphicsQuality = new GraphicsQualityManager({\n  renderer,\n  scene,\n  keyLight,\n  courtMaterial,\n  playerRoots: [player, ...offBallTeammates]\n});\n\nconst offensiveAI = new OffensiveTeamAI({
+const graphicsQuality = new GraphicsQualityManager({
+  renderer,
+  scene,
+  keyLight,
+  courtMaterial,
+  playerRoots: [player, ...offBallTeammates]
+});
+
+const offensiveAI = new OffensiveTeamAI({
   ballCarrier: player,
   teammates: offBallTeammates,
   basketPosition: hoopPosition,
